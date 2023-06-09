@@ -16,13 +16,11 @@ A set of custom circuits writted in [Gnark](https://github.com/ConsenSys/gnark) 
 |:---:|---:|---:|
 | *Inputs* | 4 | 5 |
 | *Constrains* | 42316 | 39396 (🏆) |
-| *Test time* | 169.192292s (🏆) | 172.639375 |
+| *Test time* | 169.192292ms (🏆) | 172.639375ms |
 
 
 ---
 
 ## DISCLAIMER
 
-```
-This repository provides proof-of-concept implementations. These implementations are for demonstration purposes only. These circuits are not audited, and this is not intended to be used as a library for production-grade applications.
-```
+> This repository provides proof-of-concept implementations. These implementations are for demonstration purposes only. These circuits are not audited, and this is not intended to be used as a library for production-grade applications.
