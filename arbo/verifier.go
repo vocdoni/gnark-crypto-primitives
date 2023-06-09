@@ -57,7 +57,7 @@ func CheckProof(api frontend.API, key, value, root, nsiblings frontend.Variable,
 	// of provided siblings
 	api.AssertIsLessOrEqual(nsiblings, len(siblings))
 	// call to ValidSiblings that creates a map of valid siblings
-	valid, err := api.NewHint(ValidSiblings, len(siblings), append([]frontend.Variable{nsiblings}, siblings...)...)
+	valid, err := api.NewHint(ValidSiblings, len(siblings), nsiblings)
 	if err != nil {
 		return err
 	}
