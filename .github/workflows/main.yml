@@ -1,0 +1,44 @@
+name: Main
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.x
+          cache: true
+      - name: Run golangci-lint
+        # run: |
+        #   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.30.0
+        #   $(go env GOPATH)/bin/golangci-lint run --timeout=5m -c .golangci.yml
+        uses: golangci/golangci-lint-action@v3
+        ### golangci-lint will take much time if loading multiple linters in .golangci.yml
+        with:
+          version: latest
+          args: --timeout 5m --verbose
+          skip-cache: false
+          skip-pkg-cache: false
+          skip-build-cache: false
+          only-new-issues: true
+
+  test:
+    # matrix strategy from: https://github.com/mvdan/github-actions-golang/blob/master/.github/workflows/test.yml
+    strategy:
+      matrix:
+        go-version: [1.20.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      - name: Run go test
+        run: go test -timeout=10m -race ./...
