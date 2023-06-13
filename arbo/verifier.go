@@ -63,7 +63,7 @@ func CheckProof(api frontend.API, key, value, root, nsiblings frontend.Variable,
 	}
 	// calculta the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
-	path := api.ToBinary(key, len(siblings))
+	path := api.ToBinary(key, api.Compiler().FieldBitLen())
 	// calculate the value leaf to start with it to rebuild the tree
 	firstLevel := leafValueKey(api, key, value)
 	// calculate the root and compare it with the provided one

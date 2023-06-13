@@ -1,6 +1,8 @@
 package arbo
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -9,6 +11,11 @@ import (
 	"github.com/consensys/gnark/backend/hint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
+	qt "github.com/frankban/quicktest"
+	"go.vocdoni.io/dvote/db"
+	"go.vocdoni.io/dvote/db/pebbledb"
+	"go.vocdoni.io/dvote/tree/arbo"
+	"go.vocdoni.io/dvote/util"
 )
 
 type testVerifierCircuit struct {
@@ -27,40 +34,63 @@ func init() {
 	hint.Register(ValidSiblings)
 }
 
-func TestVerifier(t *testing.T) {
-	assert := test.NewAssert(t)
+func successInputs(t *testing.T, n int) testVerifierCircuit {
+	c := qt.New(t)
 
-	var circuit testVerifierCircuit
-	testRoot, _ := new(big.Int).SetString("21135506078746510573119705753579567335835726524098367527812922933644667691006", 10)
-	testKey, _ := new(big.Int).SetString("500400244448261235194511589700085192056257072811", 10)
-	testValue, _ := new(big.Int).SetString("10", 10)
-	testSiblings := []string{
-		"13175438946403099127785287940793227584022396513432127658229341995655669945927",
-		"8906855681626013805208515602420790146700990181185755277830603493975762067087",
-		"9457781280074316365191154663065840032069867769247887694941521931147573919101",
-		"3886003602968045687040541715852317767887615077999207197223340281752527813105",
-		"5615297718669932502221460377065820025799135258753150375139282337562917282190",
-		"8028805327216345358010190706209509799652032446863364094962139617192615346584",
-		"572541247728029242828004565014369314635015057986897745288271497923406188177",
-		"9738042754594087795123752255236264962836518315799343893748681096434196901468",
+	database, err := pebbledb.New(db.Options{Path: t.TempDir()})
+	c.Assert(err, qt.IsNil)
+	tree, err := arbo.NewTree(arbo.Config{
+		Database:     database,
+		MaxLevels:    160,
+		HashFunction: arbo.HashFunctionPoseidon,
+	})
+	c.Assert(err, qt.IsNil)
+
+	key, err := hex.DecodeString("2a4636A5a1138e35F7f93e81FA56d3c970BC6777")
+	c.Assert(err, qt.IsNil)
+	value := big.NewInt(10)
+
+	err = tree.Add(key, value.Bytes())
+	c.Assert(err, qt.IsNil)
+
+	for i := 1; i < n; i++ {
+		err = tree.Add(util.RandomBytes(20), value.Bytes())
+		c.Assert(err, qt.IsNil)
 	}
-	testNSiblings := big.NewInt(int64(len(testSiblings)))
 
-	enctestSiblings := [160]frontend.Variable{}
+	tkey, tvalue, pSiblings, exist, err := tree.GenProof(key)
+	c.Assert(err, qt.IsNil)
+	c.Assert(exist, qt.IsTrue)
+	c.Assert(tkey, qt.ContentEquals, key)
+	c.Assert(tvalue, qt.ContentEquals, value.Bytes())
+
+	uSiblings, err := arbo.UnpackSiblings(arbo.HashFunctionPoseidon, pSiblings)
+	c.Assert(err, qt.IsNil)
+	fmt.Println(len(uSiblings))
+
+	siblings := [160]frontend.Variable{}
 	for i := 0; i < 160; i++ {
-		if i < len(testSiblings) {
-			enctestSiblings[i], _ = new(big.Int).SetString(testSiblings[i], 10)
+		if i < len(uSiblings) {
+			siblings[i] = arbo.BytesToBigInt(uSiblings[i])
 		} else {
-			enctestSiblings[i] = big.NewInt(0)
+			siblings[i] = big.NewInt(0)
 		}
 	}
 
-	inputs := testVerifierCircuit{
-		Root:      testRoot,
-		Key:       testKey,
-		Value:     testValue,
-		NSiblings: testNSiblings,
-		Siblings:  enctestSiblings,
+	root, err := tree.Root()
+	c.Assert(err, qt.IsNil)
+	return testVerifierCircuit{
+		Root:      arbo.BytesToBigInt(root),
+		Key:       arbo.BytesToBigInt(key),
+		Value:     value,
+		Siblings:  siblings,
+		NSiblings: new(big.Int).SetInt64(int64(len(uSiblings))),
 	}
-	assert.SolvingSucceeded(&circuit, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+}
+
+func TestVerifier(t *testing.T) {
+	assert := test.NewAssert(t)
+
+	inputs := successInputs(t, 10)
+	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
