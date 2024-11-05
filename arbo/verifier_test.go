@@ -1,12 +1,15 @@
 package arbo
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/frontend/cs/r1cs"
+	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	"go.vocdoni.io/dvote/db"
@@ -80,6 +83,11 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 }
 
 func TestVerifier(t *testing.T) {
+	p := profile.Start()
+	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testVerifierCircuit{})
+	p.Stop()
+	fmt.Println("constrains", p.NbConstraints())
+
 	assert := test.NewAssert(t)
 
 	inputs := successInputs(t, 10)
