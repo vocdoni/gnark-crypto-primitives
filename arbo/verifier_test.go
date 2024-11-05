@@ -1,13 +1,11 @@
 package arbo
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
-	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
@@ -41,15 +39,14 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 	})
 	c.Assert(err, qt.IsNil)
 
-	key, err := hex.DecodeString("2a4636A5a1138e35F7f93e81FA56d3c970BC6777")
-	c.Assert(err, qt.IsNil)
+	key := util.BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes()
 	value := big.NewInt(10)
 
 	err = tree.Add(key, value.Bytes())
 	c.Assert(err, qt.IsNil)
 
 	for i := 1; i < n; i++ {
-		err = tree.Add(util.RandomBytes(20), value.Bytes())
+		err = tree.Add(util.BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes(), value.Bytes())
 		c.Assert(err, qt.IsNil)
 	}
 
@@ -65,7 +62,7 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 	siblings := [160]frontend.Variable{}
 	for i := 0; i < 160; i++ {
 		if i < len(uSiblings) {
-			siblings[i] = arbo.BytesToBigInt(uSiblings[i])
+			siblings[i] = arbo.BytesLEToBigInt(uSiblings[i])
 		} else {
 			siblings[i] = big.NewInt(0)
 		}
@@ -74,8 +71,8 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 	root, err := tree.Root()
 	c.Assert(err, qt.IsNil)
 	return testVerifierCircuit{
-		Root:      arbo.BytesToBigInt(root),
-		Key:       arbo.BytesToBigInt(key),
+		Root:      arbo.BytesLEToBigInt(root),
+		Key:       arbo.BytesLEToBigInt(key),
 		Value:     value,
 		Siblings:  siblings,
 		NSiblings: new(big.Int).SetInt64(int64(len(uSiblings))),
@@ -86,5 +83,5 @@ func TestVerifier(t *testing.T) {
 	assert := test.NewAssert(t)
 
 	inputs := successInputs(t, 10)
-	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16), test.WithSolverOpts(solver.WithHints(ValidSiblings)))
+	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
