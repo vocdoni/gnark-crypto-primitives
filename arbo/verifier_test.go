@@ -2,13 +2,12 @@ package arbo
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
-	"github.com/consensys/gnark/backend/hint"
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
@@ -28,10 +27,6 @@ type testVerifierCircuit struct {
 
 func (circuit *testVerifierCircuit) Define(api frontend.API) error {
 	return CheckProof(api, circuit.Key, circuit.Value, circuit.Root, circuit.NSiblings, circuit.Siblings[:])
-}
-
-func init() {
-	hint.Register(ValidSiblings)
 }
 
 func successInputs(t *testing.T, n int) testVerifierCircuit {
@@ -66,7 +61,6 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 
 	uSiblings, err := arbo.UnpackSiblings(arbo.HashFunctionPoseidon, pSiblings)
 	c.Assert(err, qt.IsNil)
-	fmt.Println(len(uSiblings))
 
 	siblings := [160]frontend.Variable{}
 	for i := 0; i < 160; i++ {
@@ -92,5 +86,5 @@ func TestVerifier(t *testing.T) {
 	assert := test.NewAssert(t)
 
 	inputs := successInputs(t, 10)
-	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16), test.WithSolverOpts(solver.WithHints(ValidSiblings)))
 }
