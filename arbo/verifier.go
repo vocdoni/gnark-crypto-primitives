@@ -2,7 +2,6 @@ package arbo
 
 import (
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/math/cmp"
 	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
 )
 
@@ -18,13 +17,24 @@ func prevLevel(api frontend.API, leaf, ipath, valid, sibling frontend.Variable) 
 	return api.Select(valid, intermediateLeafKey, leaf)
 }
 
+// isLessThanConstant function returns if the variable is less than the constant
+// provided. It calculates the difference between the constant and the variable,
+// gets the binary representation of it and returns the most significant bit,
+// which is the sign bit (1 if the difference is negative, 0 otherwise).
+func isLessThanConstant(api frontend.API, v frontend.Variable, c int) frontend.Variable {
+	bitsize := api.Compiler().FieldBitLen()
+	delta := api.Sub(frontend.Variable(c), v)
+	bits := api.ToBinary(delta, bitsize)
+	return bits[bitsize-1]
+}
+
 // validSiblings function creates a binary map with the slots where a valid
 // sibling is located in the siblings list. This function helps to skip
 // unnecessary iterations when walking through the merkle tree.
 func validSiblings(api frontend.API, siblings []frontend.Variable, nsibling frontend.Variable) []frontend.Variable {
 	valid := make([]frontend.Variable, len(siblings))
 	for i := 0; i < len(siblings); i++ {
-		valid[i] = cmp.IsLess(api, frontend.Variable(i), nsibling)
+		valid[i] = isLessThanConstant(api, nsibling, i)
 	}
 	return valid
 }
