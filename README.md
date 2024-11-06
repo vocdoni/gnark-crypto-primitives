@@ -9,14 +9,13 @@ A set of custom circuits writted in [Gnark](https://github.com/ConsenSys/gnark) 
 3. Arbo (by [@arnaucube](https://github.com/arnaucube)) proof checker from [@vocdoni/arbo](https://github.com/vocdoni/vocdoni-node/tree/main/tree/arbo) ([source code](./arbo))
     - This is compatible with the SMT Verifier.
 
-
 **SMT Verifier vs. Arbo**
 
 | | SMT Verifier | Arbo |
 |:---:|---:|---:|
 | *Inputs* | 4 | 5 |
-| *Constrains* | 42316 | 39396 (🏆) |
-| *Solver time* | 169.192292ms | 162.1965ms (🏆) |
+| *Constrains* | 42316 | 41373 (🏆) |
+| *Solver time* | 169.192292ms (🏆) | 560.808916ms |
 
 
 ---

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
@@ -84,7 +85,9 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 
 func TestVerifier(t *testing.T) {
 	p := profile.Start()
+	now := time.Now()
 	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testVerifierCircuit{})
+	fmt.Println("elapsed", time.Since(now))
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 

@@ -17,26 +17,20 @@ func prevLevel(api frontend.API, leaf, ipath, valid, sibling frontend.Variable) 
 	return api.Select(valid, intermediateLeafKey, leaf)
 }
 
-// isLessThanConstant function returns if the variable is less than the constant
-// provided. It calculates the difference between the constant and the variable,
-// gets the binary representation of it and returns the most significant bit,
-// which is the sign bit (1 if the difference is negative, 0 otherwise).
-func isLessThanConstant(api frontend.API, v frontend.Variable, c int) frontend.Variable {
-	bitsize := api.Compiler().FieldBitLen()
-	delta := api.Sub(frontend.Variable(c), v)
-	bits := api.ToBinary(delta, bitsize)
-	return bits[bitsize-1]
+// strictCmp function compares a and b and returns:
+//
+//	1 a != b
+//	0 a == b
+func strictCmp(api frontend.API, a, b frontend.Variable) frontend.Variable {
+	return api.Select(api.IsZero(api.Sub(a, b)), 0, 1)
 }
 
-// validSiblings function creates a binary map with the slots where a valid
-// sibling is located in the siblings list. This function helps to skip
-// unnecessary iterations when walking through the merkle tree.
-func validSiblings(api frontend.API, siblings []frontend.Variable, nsibling frontend.Variable) []frontend.Variable {
-	valid := make([]frontend.Variable, len(siblings))
-	for i := 0; i < len(siblings); i++ {
-		valid[i] = isLessThanConstant(api, nsibling, i)
-	}
-	return valid
+// isValid function returns 1 if the the sibling provided is a valid sibling or
+// 0 otherwise. To check if the sibling is valid, its leaf value and it must be
+// different from the previous leaf value and the previous sibling.
+func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Variable) frontend.Variable {
+	cmp1, cmp2 := strictCmp(api, leaf, prevLeaf), strictCmp(api, sibling, prevSibling)
+	return api.Select(api.Or(cmp1, cmp2), 1, 0)
 }
 
 // CheckProof receives the parameters of a proof of Arbo to recalculate the
@@ -46,7 +40,7 @@ func CheckProof(api frontend.API, key, value, root, nsiblings frontend.Variable,
 	// of provided siblings
 	api.AssertIsLessOrEqual(nsiblings, len(siblings))
 	// get a map with the valid siblings
-	valid := validSiblings(api, siblings, nsiblings)
+	// valid := validSiblings(api, siblings, nsiblings)
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
 	path := api.ToBinary(key, api.Compiler().FieldBitLen())
@@ -54,10 +48,17 @@ func CheckProof(api frontend.API, key, value, root, nsiblings frontend.Variable,
 	//   leafValue = H(key | value | 1)
 	leafValue := poseidon.Hash(api, key, value, 1)
 	// calculate the root and compare it with the provided one
-	currentLevel := leafValue
+	prevLeaf := leafValue
+	currentLeaf := leafValue
+	prevSibling := frontend.Variable(0)
 	for i := len(siblings) - 1; i >= 0; i-- {
-		currentLevel = prevLevel(api, currentLevel, path[i], valid[i], siblings[i])
+		// check if the sibling is valid
+		valid := isValid(api, siblings[i], prevSibling, currentLeaf, prevLeaf)
+		prevLeaf = currentLeaf
+		prevSibling = siblings[i]
+		// compute the next leaf value
+		currentLeaf = prevLevel(api, currentLeaf, path[i], valid, siblings[i])
 	}
-	api.AssertIsEqual(currentLevel, root)
+	api.AssertIsEqual(currentLeaf, root)
 	return nil
 }
