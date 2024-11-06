@@ -15,7 +15,7 @@ A set of custom circuits writted in [Gnark](https://github.com/ConsenSys/gnark) 
 |:---:|---:|---:|
 | *Inputs* | 4 | 5 |
 | *Constrains* | 42316 | 41373 (🏆) |
-| *Solver time* | 169.192292ms (🏆) | 560.808916ms |
+| *Solver time* | 169.192292ms (🏆) | 211.738333ms |
 
 
 ---
