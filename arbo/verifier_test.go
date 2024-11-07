@@ -23,12 +23,11 @@ type testVerifierCircuit struct {
 	Root      frontend.Variable
 	Key       frontend.Variable
 	Value     frontend.Variable
-	NSiblings frontend.Variable
 	Siblings  [160]frontend.Variable
 }
 
 func (circuit *testVerifierCircuit) Define(api frontend.API) error {
-	return CheckProof(api, circuit.Key, circuit.Value, circuit.Root, circuit.NSiblings, circuit.Siblings[:])
+	return CheckProof(api, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
 }
 
 func successInputs(t *testing.T, n int) testVerifierCircuit {
@@ -79,7 +78,6 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 		Key:       arbo.BytesLEToBigInt(key),
 		Value:     value,
 		Siblings:  siblings,
-		NSiblings: new(big.Int).SetInt64(int64(len(uSiblings))),
 	}
 }
 

@@ -35,12 +35,7 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 
 // CheckProof receives the parameters of a proof of Arbo to recalculate the
 // root with them and compare it with the provided one, verifiying the proof.
-func CheckProof(api frontend.API, key, value, root, nsiblings frontend.Variable, siblings []frontend.Variable) error {
-	// ensure that the number of valid siblings are less or equal to the number
-	// of provided siblings
-	api.AssertIsLessOrEqual(nsiblings, len(siblings))
-	// get a map with the valid siblings
-	// valid := validSiblings(api, siblings, nsiblings)
+func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings []frontend.Variable) error {
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
 	path := api.ToBinary(key, api.Compiler().FieldBitLen())
