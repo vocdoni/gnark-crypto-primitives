@@ -57,8 +57,8 @@ func TestHomomorphicAdd(t *testing.T) {
 	msg1 := big.NewInt(3)
 	a1, a2 := encrypt(msg1, pubKey, k1)
 	// reduce the points to reduced twisted edwards form
-	rteA1 := tw.NewPoint(a1.X, a1.Y).FromTEtoRTE()
-	rteA2 := tw.NewPoint(a2.X, a2.Y).FromTEtoRTE()
+	xA1RTE, yA1RTE := tw.FromTEtoRTE(a1.X, a1.Y)
+	xA2RTE, yA2RTE := tw.FromTEtoRTE(a2.X, a2.Y)
 	// generate a second random k to encrypt a second message
 	k2, err := randomK()
 	if err != nil {
@@ -69,14 +69,14 @@ func TestHomomorphicAdd(t *testing.T) {
 	msg2 := big.NewInt(5)
 	b1, b2 := encrypt(msg2, pubKey, k2)
 	// reduce the points to reduced twisted edwards form
-	rteB1 := tw.NewPoint(b1.X, b1.Y).FromTEtoRTE()
-	rteB2 := tw.NewPoint(b2.X, b2.Y).FromTEtoRTE()
+	xB1RTE, yB1RTE := tw.FromTEtoRTE(b1.X, b1.Y)
+	xB2RTE, yB2RTE := tw.FromTEtoRTE(b2.X, b2.Y)
 	// calculate the sum of the encrypted messages to check the homomorphic property
 	c1 := new(babyjub.PointProjective).Add(a1.Projective(), b1.Projective()).Affine()
 	c2 := new(babyjub.PointProjective).Add(a2.Projective(), b2.Projective()).Affine()
 	// reduce the points to reduced twisted edwards form
-	rteC1 := tw.NewPoint(c1.X, c1.Y).FromTEtoRTE()
-	rteC2 := tw.NewPoint(c2.X, c2.Y).FromTEtoRTE()
+	xC1RTE, yC1RTE := tw.FromTEtoRTE(c1.X, c1.Y)
+	xC2RTE, yC2RTE := tw.FromTEtoRTE(c2.X, c2.Y)
 	// profiling the circuit compilation
 	p := profile.Start()
 	now := time.Now()
@@ -88,31 +88,33 @@ func TestHomomorphicAdd(t *testing.T) {
 	assert := test.NewAssert(t)
 	inputs := &testHomomorphicAddCircuit{
 		A1: twistededwards.Point{
-			X: rteA1.X,
-			Y: rteA1.Y,
+			X: xA1RTE,
+			Y: yA1RTE,
 		},
 		A2: twistededwards.Point{
-			X: rteA2.X,
-			Y: rteA2.Y,
+			X: xA2RTE,
+			Y: yA2RTE,
 		},
 		B1: twistededwards.Point{
-			X: rteB1.X,
-			Y: rteB1.Y,
+			X: xB1RTE,
+			Y: yB1RTE,
 		},
 		B2: twistededwards.Point{
-			X: rteB2.X,
-			Y: rteB2.Y,
+			X: xB2RTE,
+			Y: yB2RTE,
 		},
 		C1: twistededwards.Point{
-			X: rteC1.X,
-			Y: rteC1.Y,
+			X: xC1RTE,
+			Y: yC1RTE,
 		},
 		C2: twistededwards.Point{
-			X: rteC2.X,
-			Y: rteC2.Y,
+			X: xC2RTE,
+			Y: yC2RTE,
 		},
 	}
+	now = time.Now()
 	assert.SolvingSucceeded(&testHomomorphicAddCircuit{}, inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+	fmt.Println("elapsed", time.Since(now))
 }
 
 func randomK() (*big.Int, error) {

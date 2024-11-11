@@ -8,7 +8,7 @@ A set of custom circuits writted in [Gnark](https://github.com/ConsenSys/gnark) 
 2. SMT Verifier port from [@iden3/circomlib](https://github.com/iden3/circomlib/blob/master/circuits/smt/smtverifier.circom) ([source code](./smt)).
 3. Arbo (by [@arnaucube](https://github.com/arnaucube)) proof checker from [@vocdoni/arbo](https://github.com/vocdoni/vocdoni-node/tree/main/tree/arbo) ([source code](./arbo))
     - This is compatible with the SMT Verifier.
-4. Homomorphic Addition (using point reduction of TwistedEdwards curve to transform circom BabyJubJub points into Gnark BabyJubJub points) ([source code](./hadd)). 
+4. Homomorphic Addition (using point reduction of TwistedEdwards curve to transform circom BabyJubJub points into Gnark BabyJubJub points) ([source code](./hadd)) ([helpers source code](./twistededwards))
 
 **SMT Verifier vs. Arbo**
 
