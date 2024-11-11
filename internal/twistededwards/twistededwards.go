@@ -17,6 +17,13 @@ type Point struct {
 	X, Y *big.Int
 }
 
+func NewPoint(x, y *big.Int) *Point {
+	return &Point{
+		X: x,
+		Y: y,
+	}
+}
+
 // Convert Reduced TwistedEdwards x' to TwistedEdwards:
 //
 //	x = x'/(-f)
