@@ -15,7 +15,7 @@ import (
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	tw "github.com/vocdoni/gnark-crypto-primitives/internal/twistededwards"
+	"github.com/vocdoni/vocdoni-z-sandbox/ecc/format"
 )
 
 type testHomomorphicAddCircuit struct {
@@ -57,8 +57,8 @@ func TestHomomorphicAdd(t *testing.T) {
 	msg1 := big.NewInt(3)
 	a1, a2 := encrypt(msg1, pubKey, k1)
 	// reduce the points to reduced twisted edwards form
-	xA1RTE, yA1RTE := tw.FromTEtoRTE(a1.X, a1.Y)
-	xA2RTE, yA2RTE := tw.FromTEtoRTE(a2.X, a2.Y)
+	xA1RTE, yA1RTE := format.FromTEtoRTE(a1.X, a1.Y)
+	xA2RTE, yA2RTE := format.FromTEtoRTE(a2.X, a2.Y)
 	// generate a second random k to encrypt a second message
 	k2, err := randomK()
 	if err != nil {
@@ -69,14 +69,14 @@ func TestHomomorphicAdd(t *testing.T) {
 	msg2 := big.NewInt(5)
 	b1, b2 := encrypt(msg2, pubKey, k2)
 	// reduce the points to reduced twisted edwards form
-	xB1RTE, yB1RTE := tw.FromTEtoRTE(b1.X, b1.Y)
-	xB2RTE, yB2RTE := tw.FromTEtoRTE(b2.X, b2.Y)
+	xB1RTE, yB1RTE := format.FromTEtoRTE(b1.X, b1.Y)
+	xB2RTE, yB2RTE := format.FromTEtoRTE(b2.X, b2.Y)
 	// calculate the sum of the encrypted messages to check the homomorphic property
 	c1 := new(babyjub.PointProjective).Add(a1.Projective(), b1.Projective()).Affine()
 	c2 := new(babyjub.PointProjective).Add(a2.Projective(), b2.Projective()).Affine()
 	// reduce the points to reduced twisted edwards form
-	xC1RTE, yC1RTE := tw.FromTEtoRTE(c1.X, c1.Y)
-	xC2RTE, yC2RTE := tw.FromTEtoRTE(c2.X, c2.Y)
+	xC1RTE, yC1RTE := format.FromTEtoRTE(c1.X, c1.Y)
+	xC2RTE, yC2RTE := format.FromTEtoRTE(c2.X, c2.Y)
 	// profiling the circuit compilation
 	p := profile.Start()
 	now := time.Now()

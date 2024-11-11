@@ -12,7 +12,7 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
-	"github.com/vocdoni/gnark-crypto-primitives/internal/twistededwards"
+	"github.com/vocdoni/vocdoni-z-sandbox/ecc/format"
 )
 
 type testFromTwistedEdwards struct {
@@ -41,7 +41,7 @@ func TestFromTwistedEdwards(t *testing.T) {
 	x, _ := new(big.Int).SetString("20284931487578954787250358776722960153090567235942462656834196519767860852891", 10)
 	y, _ := new(big.Int).SetString("21185575020764391300398134415668786804224896114060668011215204645513129497221", 10)
 
-	xRTE, yRTE := twistededwards.FromTEtoRTE(x, y)
+	xRTE, yRTE := format.FromTEtoRTE(x, y)
 	// profiling the circuit compilation
 	p := profile.Start()
 	now := time.Now()
@@ -67,7 +67,7 @@ func TestFromReducedTwistedEdwards(t *testing.T) {
 	x, _ := new(big.Int).SetString("20284931487578954787250358776722960153090567235942462656834196519767860852891", 10)
 	y, _ := new(big.Int).SetString("21185575020764391300398134415668786804224896114060668011215204645513129497221", 10)
 
-	xRTE, yRTE := twistededwards.FromTEtoRTE(x, y)
+	xRTE, yRTE := format.FromTEtoRTE(x, y)
 	// profiling the circuit compilation
 	p := profile.Start()
 	now := time.Now()

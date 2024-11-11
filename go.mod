@@ -1,14 +1,13 @@
 module github.com/vocdoni/gnark-crypto-primitives
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.23.2
 
 require (
 	github.com/consensys/gnark v0.11.0
 	github.com/consensys/gnark-crypto v0.14.0
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
+	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241111130906-b8e8592696c6
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
 )
 
