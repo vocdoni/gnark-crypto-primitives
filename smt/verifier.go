@@ -25,9 +25,15 @@ func smtverifier(api frontend.API,
 
 	// [STEP 1]
 	// hash1Old = H(oldKey | oldValue | 1)
-	hash1Old := endLeafValue(api, oldKey, oldValue)
+	hash1Old, err := endLeafValue(api, oldKey, oldValue)
+	if err != nil {
+		return err
+	}
 	// hash1New = H(key | value | 1)
-	hash1New := endLeafValue(api, key, value)
+	hash1New, err := endLeafValue(api, key, value)
+	if err != nil {
+		return err
+	}
 
 	// [STEP 2]
 	// component n2bNew = Num2Bits_strict();
@@ -79,7 +85,7 @@ func smtverifier(api frontend.API,
 			child = levels[i+1]
 		}
 
-		levels[i] = smtVerifierLevel(api,
+		levels[i], err = smtVerifierLevel(api,
 			sm[i][0],    // st_top
 			sm[i][1],    // st_iold
 			sm[i][3],    // st_new
@@ -89,6 +95,9 @@ func smtverifier(api frontend.API,
 			n2bNew[i],   // lrbit
 			child,       // child
 		)
+		if err != nil {
+			return err
+		}
 	}
 
 	// component areKeyEquals = IsEqual();
@@ -170,7 +179,7 @@ func smtVerifierSM(api frontend.API,
 }
 
 func smtVerifierLevel(api frontend.API, stTop, stIold, stInew, sibling,
-	old1leaf, new1leaf, lrbit, child frontend.Variable) frontend.Variable {
+	old1leaf, new1leaf, lrbit, child frontend.Variable) (frontend.Variable, error) {
 	// component switcher = Switcher();
 	// switcher.sel <== lrbit;
 	// switcher.L <== child;
@@ -179,11 +188,14 @@ func smtVerifierLevel(api frontend.API, stTop, stIold, stInew, sibling,
 	// component proofHash = SMTHash2();
 	// proofHash.L <== switcher.outL;
 	// proofHash.R <== switcher.outR;
-	proofHash := intermediateLeafValue(api, l, r)
+	proofHash, err := intermediateLeafValue(api, l, r)
+	if err != nil {
+		return 0, err
+	}
 	// aux[0] <== proofHash.out * st_top;
 	aux0 := api.Mul(proofHash, stTop)
 	// aux[1] <== old1leaf * st_iold;
 	aux1 := api.Mul(old1leaf, stIold)
 	// root <== aux[0] + aux[1] + new1leaf * st_inew;
-	return api.Add(aux0, aux1, api.Mul(new1leaf, stInew))
+	return api.Add(aux0, aux1, api.Mul(new1leaf, stInew)), nil
 }

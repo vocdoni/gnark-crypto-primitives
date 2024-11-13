@@ -10,7 +10,7 @@ import (
 // provided, hashing it with the predefined hashing function 'H':
 //
 //	newLeafValue = H(key | value | 1)
-func endLeafValue(api frontend.API, key, value frontend.Variable) frontend.Variable {
+func endLeafValue(api frontend.API, key, value frontend.Variable) (frontend.Variable, error) {
 	return poseidon.Hash(api, key, value, 1)
 }
 
@@ -18,7 +18,7 @@ func endLeafValue(api frontend.API, key, value frontend.Variable) frontend.Varia
 // key-value pair provided, hashing it with the predefined hashing function 'H':
 //
 //	intermediateLeafValue = H(l | r)
-func intermediateLeafValue(api frontend.API, l, r frontend.Variable) frontend.Variable {
+func intermediateLeafValue(api frontend.API, l, r frontend.Variable) (frontend.Variable, error) {
 	return poseidon.Hash(api, l, r)
 }
 

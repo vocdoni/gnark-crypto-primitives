@@ -8,13 +8,16 @@ import (
 // prevLevel function calculates the previous level of the merkle tree given the
 // current leaf, the current path bit of the leaf, the validity of the sibling
 // and the sibling itself.
-func prevLevel(api frontend.API, leaf, ipath, valid, sibling frontend.Variable) frontend.Variable {
+func prevLevel(api frontend.API, leaf, ipath, valid, sibling frontend.Variable) (frontend.Variable, error) {
 	// l, r = path == 1 ? sibling, current : current, sibling
 	l, r := api.Select(ipath, sibling, leaf), api.Select(ipath, leaf, sibling)
 	// intermediateLeafKey = H(l | r)
-	intermediateLeafKey := poseidon.Hash(api, l, r)
+	intermediateLeafKey, err := poseidon.Hash(api, l, r)
+	if err != nil {
+		return 0, err
+	}
 	// newCurrent = valid == 1 ? current : intermediateLeafKey
-	return api.Select(valid, intermediateLeafKey, leaf)
+	return api.Select(valid, intermediateLeafKey, leaf), nil
 }
 
 // strictCmp function compares a and b and returns:
@@ -41,7 +44,10 @@ func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings [
 	path := api.ToBinary(key, api.Compiler().FieldBitLen())
 	// calculate the value leaf to start with it to rebuild the tree
 	//   leafValue = H(key | value | 1)
-	leafValue := poseidon.Hash(api, key, value, 1)
+	leafValue, err := poseidon.Hash(api, key, value, 1)
+	if err != nil {
+		return err
+	}
 	// calculate the root and compare it with the provided one
 	prevLeaf := leafValue
 	currentLeaf := leafValue
@@ -52,7 +58,10 @@ func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings [
 		prevLeaf = currentLeaf
 		prevSibling = siblings[i]
 		// compute the next leaf value
-		currentLeaf = prevLevel(api, currentLeaf, path[i], valid, siblings[i])
+		currentLeaf, err = prevLevel(api, currentLeaf, path[i], valid, siblings[i])
+		if err != nil {
+			return err
+		}
 	}
 	api.AssertIsEqual(currentLeaf, root)
 	return nil

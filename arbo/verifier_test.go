@@ -20,10 +20,10 @@ import (
 )
 
 type testVerifierCircuit struct {
-	Root      frontend.Variable
-	Key       frontend.Variable
-	Value     frontend.Variable
-	Siblings  [160]frontend.Variable
+	Root     frontend.Variable
+	Key      frontend.Variable
+	Value    frontend.Variable
+	Siblings [160]frontend.Variable
 }
 
 func (circuit *testVerifierCircuit) Define(api frontend.API) error {
@@ -74,10 +74,10 @@ func successInputs(t *testing.T, n int) testVerifierCircuit {
 	root, err := tree.Root()
 	c.Assert(err, qt.IsNil)
 	return testVerifierCircuit{
-		Root:      arbo.BytesLEToBigInt(root),
-		Key:       arbo.BytesLEToBigInt(key),
-		Value:     value,
-		Siblings:  siblings,
+		Root:     arbo.BytesLEToBigInt(root),
+		Key:      arbo.BytesLEToBigInt(key),
+		Value:    value,
+		Siblings: siblings,
 	}
 }
 
