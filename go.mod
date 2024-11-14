@@ -5,7 +5,6 @@ go 1.23.2
 require (
 	github.com/consensys/gnark v0.11.0
 	github.com/consensys/gnark-crypto v0.14.0
-	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
@@ -31,7 +30,6 @@ require (
 	github.com/glendc/go-external-ip v0.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
 	github.com/ingonyama-zk/icicle v1.1.0 // indirect
 	github.com/ingonyama-zk/iciclegnark v0.1.0 // indirect
