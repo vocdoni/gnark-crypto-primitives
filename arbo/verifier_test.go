@@ -1,8 +1,10 @@
 package arbo
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -12,7 +14,6 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
-	qt "github.com/frankban/quicktest"
 	"go.vocdoni.io/dvote/db"
 	"go.vocdoni.io/dvote/db/pebbledb"
 	"go.vocdoni.io/dvote/tree/arbo"
@@ -30,57 +31,6 @@ func (circuit *testVerifierCircuit) Define(api frontend.API) error {
 	return CheckProof(api, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
 }
 
-func successInputs(t *testing.T, n int) testVerifierCircuit {
-	c := qt.New(t)
-
-	database, err := pebbledb.New(db.Options{Path: t.TempDir()})
-	c.Assert(err, qt.IsNil)
-	tree, err := arbo.NewTree(arbo.Config{
-		Database:     database,
-		MaxLevels:    160,
-		HashFunction: arbo.HashFunctionPoseidon,
-	})
-	c.Assert(err, qt.IsNil)
-
-	key := util.BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes()
-	value := big.NewInt(10)
-
-	err = tree.Add(key, value.Bytes())
-	c.Assert(err, qt.IsNil)
-
-	for i := 1; i < n; i++ {
-		err = tree.Add(util.BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes(), value.Bytes())
-		c.Assert(err, qt.IsNil)
-	}
-
-	tkey, tvalue, pSiblings, exist, err := tree.GenProof(key)
-	c.Assert(err, qt.IsNil)
-	c.Assert(exist, qt.IsTrue)
-	c.Assert(tkey, qt.ContentEquals, key)
-	c.Assert(tvalue, qt.ContentEquals, value.Bytes())
-
-	uSiblings, err := arbo.UnpackSiblings(arbo.HashFunctionPoseidon, pSiblings)
-	c.Assert(err, qt.IsNil)
-
-	siblings := [160]frontend.Variable{}
-	for i := 0; i < 160; i++ {
-		if i < len(uSiblings) {
-			siblings[i] = arbo.BytesLEToBigInt(uSiblings[i])
-		} else {
-			siblings[i] = big.NewInt(0)
-		}
-	}
-
-	root, err := tree.Root()
-	c.Assert(err, qt.IsNil)
-	return testVerifierCircuit{
-		Root:     arbo.BytesLEToBigInt(root),
-		Key:      arbo.BytesLEToBigInt(key),
-		Value:    value,
-		Siblings: siblings,
-	}
-}
-
 func TestVerifier(t *testing.T) {
 	p := profile.Start()
 	now := time.Now()
@@ -91,6 +41,74 @@ func TestVerifier(t *testing.T) {
 
 	assert := test.NewAssert(t)
 
-	inputs := successInputs(t, 10)
+	// inputs := successInputs(t, 10)
+	inputs, err := generateCensusProof(10, util.RandomBytes(20), big.NewInt(10).Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	binputs, _ := json.MarshalIndent(inputs, "  ", "  ")
+	fmt.Println("inputs", string(binputs))
 	assert.SolvingSucceeded(&testVerifierCircuit{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+}
+
+func generateCensusProof(n int, k, v []byte) (testVerifierCircuit, error) {
+	dir := os.TempDir()
+	defer func() {
+		_ = os.RemoveAll(dir)
+	}()
+	database, err := pebbledb.New(db.Options{Path: dir})
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	tree, err := arbo.NewTree(arbo.Config{
+		Database:     database,
+		MaxLevels:    160,
+		HashFunction: arbo.HashFunctionPoseidon,
+	})
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	k = util.BigToFF(new(big.Int).SetBytes(k)).Bytes()
+	// add the first key-value pair
+	if err = tree.Add(k, v); err != nil {
+		return testVerifierCircuit{}, err
+	}
+	// add random addresses
+	for i := 1; i < n; i++ {
+		rk := util.BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes()
+		rv := new(big.Int).SetBytes(util.RandomBytes(8)).Bytes()
+		if err = tree.Add(rk, rv); err != nil {
+			return testVerifierCircuit{}, err
+		}
+	}
+	// generate the proof
+	_, _, siblings, exist, err := tree.GenProof(k)
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	if !exist {
+		return testVerifierCircuit{}, fmt.Errorf("error building the merkle tree: key not found")
+	}
+	unpackedSiblings, err := arbo.UnpackSiblings(arbo.HashFunctionPoseidon, siblings)
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	paddedSiblings := [160]frontend.Variable{}
+	for i := 0; i < 160; i++ {
+		if i < len(unpackedSiblings) {
+			paddedSiblings[i] = arbo.BytesLEToBigInt(unpackedSiblings[i])
+		} else {
+			paddedSiblings[i] = big.NewInt(0)
+		}
+	}
+	root, err := tree.Root()
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	return testVerifierCircuit{
+		Root:     arbo.BytesLEToBigInt(root),
+		Key:      arbo.BytesLEToBigInt(k),
+		Value:    new(big.Int).SetBytes(v),
+		Siblings: paddedSiblings,
+	}, nil
 }
