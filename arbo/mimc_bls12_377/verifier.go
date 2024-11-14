@@ -2,7 +2,7 @@ package arbo
 
 import (
 	"github.com/consensys/gnark/frontend"
-	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
+	"github.com/consensys/gnark/std/hash/mimc"
 )
 
 // prevLevel function calculates the previous level of the merkle tree given the
@@ -12,10 +12,12 @@ func prevLevel(api frontend.API, leaf, ipath, valid, sibling frontend.Variable) 
 	// l, r = path == 1 ? sibling, current : current, sibling
 	l, r := api.Select(ipath, sibling, leaf), api.Select(ipath, leaf, sibling)
 	// intermediateLeafKey = H(l | r)
-	intermediateLeafKey, err := poseidon.Hash(api, l, r)
+	hash, err := mimc.NewMiMC(api)
 	if err != nil {
 		return 0, err
 	}
+	hash.Write(l, r)
+	intermediateLeafKey := hash.Sum()
 	// newCurrent = valid == 1 ? current : intermediateLeafKey
 	return api.Select(valid, intermediateLeafKey, leaf), nil
 }
@@ -41,13 +43,17 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings []frontend.Variable) error {
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
-	path := api.ToBinary(key, api.Compiler().FieldBitLen())
+	path := api.ToBinary(key, len(siblings))
 	// calculate the value leaf to start with it to rebuild the tree
 	//   leafValue = H(key | value | 1)
-	leafValue, err := poseidon.Hash(api, key, value, 1)
+	hash, err := mimc.NewMiMC(api)
 	if err != nil {
 		return err
 	}
+	hash.Write(key, value, 1)
+	leafValue := hash.Sum()
+	api.Println("[gnark] leafKey", key)
+	api.Println("[gnark] leafValue", leafValue)
 	// calculate the root and compare it with the provided one
 	prevLeaf := leafValue
 	currentLeaf := leafValue
