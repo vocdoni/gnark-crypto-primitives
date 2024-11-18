@@ -6,13 +6,10 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
 	arbotree "github.com/vocdoni/arbo"
 	"go.vocdoni.io/dvote/db"
@@ -21,11 +18,16 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
+const (
+	n_siblings = 32
+	k_len      = n_siblings / 8
+)
+
 type testVerifierCircuit struct {
 	Root     frontend.Variable
 	Key      frontend.Variable
 	Value    frontend.Variable
-	Siblings [160]frontend.Variable
+	Siblings [n_siblings]frontend.Variable
 }
 
 func (circuit *testVerifierCircuit) Define(api frontend.API) error {
@@ -33,17 +35,17 @@ func (circuit *testVerifierCircuit) Define(api frontend.API) error {
 }
 
 func TestVerifier(t *testing.T) {
-	p := profile.Start()
-	now := time.Now()
-	_, _ = frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &testVerifierCircuit{})
-	fmt.Println("elapsed", time.Since(now))
-	p.Stop()
-	fmt.Println("constrains", p.NbConstraints())
+	// p := profile.Start()
+	// now := time.Now()
+	// _, _ = frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &testVerifierCircuit{})
+	// fmt.Println("elapsed", time.Since(now))
+	// p.Stop()
+	// fmt.Println("constrains", p.NbConstraints())
 
 	assert := test.NewAssert(t)
 
 	// inputs := successInputs(t, 10)
-	inputs, err := generateCensusProof(10, util.RandomBytes(20), big.NewInt(10).Bytes())
+	inputs, err := generateCensusProof(10, util.RandomBytes(k_len), big.NewInt(10).Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +80,7 @@ func generateCensusProof(n int, k, v []byte) (testVerifierCircuit, error) {
 	}
 	tree, err := arbotree.NewTree(arbotree.Config{
 		Database:     database,
-		MaxLevels:    160,
+		MaxLevels:    n_siblings,
 		HashFunction: arbotree.HashFunctionMiMC_BLS12_377,
 	})
 	if err != nil {
@@ -89,13 +91,9 @@ func generateCensusProof(n int, k, v []byte) (testVerifierCircuit, error) {
 	if err = tree.Add(k, v); err != nil {
 		return testVerifierCircuit{}, err
 	}
-	h := tree.HashFunction()
-	r, _ := h.Hash(k, v, []byte{1})
-	log.Println("[go] leafKey", new(big.Int).SetBytes(k))
-	log.Println("[go] leafValue", new(big.Int).SetBytes(r))
 	// add random addresses
 	for i := 1; i < n; i++ {
-		rk := BigToFF(new(big.Int).SetBytes(util.RandomBytes(20))).Bytes()
+		rk := BigToFF(new(big.Int).SetBytes(util.RandomBytes(k_len))).Bytes()
 		rv := new(big.Int).SetBytes(util.RandomBytes(8)).Bytes()
 		if err = tree.Add(rk, rv); err != nil {
 			return testVerifierCircuit{}, err
@@ -113,8 +111,9 @@ func generateCensusProof(n int, k, v []byte) (testVerifierCircuit, error) {
 	if err != nil {
 		return testVerifierCircuit{}, err
 	}
-	paddedSiblings := [160]frontend.Variable{}
-	for i := 0; i < 160; i++ {
+	fmt.Println("validSiblings", len(unpackedSiblings))
+	paddedSiblings := [n_siblings]frontend.Variable{}
+	for i := 0; i < n_siblings; i++ {
 		if i < len(unpackedSiblings) {
 			paddedSiblings[i] = arbo.BytesLEToBigInt(unpackedSiblings[i])
 		} else {
@@ -125,9 +124,17 @@ func generateCensusProof(n int, k, v []byte) (testVerifierCircuit, error) {
 	if err != nil {
 		return testVerifierCircuit{}, err
 	}
+	verified, err := arbotree.CheckProof(tree.HashFunction(), k, v, root, siblings)
+	if !verified {
+		return testVerifierCircuit{}, fmt.Errorf("error verifying the proof")
+	}
+	if err != nil {
+		return testVerifierCircuit{}, err
+	}
+	log.Println(new(big.Int).SetBytes(k).String())
 	return testVerifierCircuit{
-		Root:     root,
-		Key:      k,
+		Root:     new(big.Int).SetBytes(root),
+		Key:      arbo.BytesLEToBigInt(k),
 		Value:    new(big.Int).SetBytes(v),
 		Siblings: paddedSiblings,
 	}, nil
