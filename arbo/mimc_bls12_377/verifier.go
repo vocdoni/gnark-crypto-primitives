@@ -40,25 +40,12 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 	return api.Select(api.Or(cmp1, cmp2), 1, 0)
 }
 
-func swapEndianness(api frontend.API, b frontend.Variable, l int) frontend.Variable {
-	bits := api.ToBinary(b, l)
-	swapped := make([]frontend.Variable, l)
-	for i := 0; i < l; i++ {
-		swapped[len(bits)-1-i] = bits[i]
-	}
-	return api.FromBinary(swapped)
-}
-
 // CheckProof receives the parameters of a proof of Arbo to recalculate the
 // root with them and compare it with the provided one, verifiying the proof.
 func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings []frontend.Variable) error {
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
 	path := api.ToBinary(key, len(siblings))
-	for i := 0; i < len(path); i++ {
-		api.Println("gnark", i, path[i])
-	}
-	api.Println(swapEndianness(api, key, len(siblings)))
 	// calculate the current leaf key to start with it to rebuild the tree
 	//   leafKey = H(key | value | 1)
 	hash, err := mimc.NewMiMC(api)
@@ -67,7 +54,6 @@ func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings [
 	}
 	hash.Write(key, value, 1)
 	leafKey := hash.Sum()
-	api.Println("gnark leafKey", leafKey)
 	// calculate the root iterating through the siblings in inverse order,
 	// calculating the intermediate leaf key based on the path and the validity
 	// of the current sibling
@@ -84,7 +70,6 @@ func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings [
 		if err != nil {
 			return err
 		}
-		// api.Println("gnark", i, path[i], prevKey, prevSibling, lastKey)
 	}
 	api.AssertIsEqual(lastKey, root)
 	return nil

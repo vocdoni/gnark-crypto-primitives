@@ -124,8 +124,8 @@ github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsT
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a h1:1ur3QoCqvE5fl+nylMaIr9PVV1w343YRDtsy+Rwu7XI=
 github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a/go.mod h1:RRCYJbIwD5jmqPI9XoAFR0OcDxqUctll6zUj/+B4S48=
-github.com/vocdoni/arbo v0.0.0-20241114123238-8b237b4e83fa h1:6BmPeb/Sw6Hg+Gx6jZX+NNEElJ1qiAPfC7LoMjurgko=
-github.com/vocdoni/arbo v0.0.0-20241114123238-8b237b4e83fa/go.mod h1:Esswqcf/RWCJHJ6zB51hefUxYR+bJbs1zjJ1Bpb3InE=
+github.com/vocdoni/arbo v0.0.0-20241118081754-5c73e593c718 h1:f5VN9QAiR2cx0vAw2SnDNKLUot9+CZ5j9gGCJ198v0E=
+github.com/vocdoni/arbo v0.0.0-20241118081754-5c73e593c718/go.mod h1:Esswqcf/RWCJHJ6zB51hefUxYR+bJbs1zjJ1Bpb3InE=
 github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b h1:Hf7CZnNm8XhGBb0XBYVDUir7iNhIryJSmSUz+wlV7vw=
 github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b/go.mod h1:B43i83saYhSReG+jNAj0igxWcZYHGjF2AeXunaXnCQE=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
