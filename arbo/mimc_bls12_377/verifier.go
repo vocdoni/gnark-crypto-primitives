@@ -58,19 +58,18 @@ func CheckProof(api frontend.API, key, value, root frontend.Variable, siblings [
 	// calculating the intermediate leaf key based on the path and the validity
 	// of the current sibling
 	prevKey := leafKey                  // init prevKey with computed leafKey
-	lastKey := leafKey                  // init lastKey with computed leafKey
 	prevSibling := frontend.Variable(0) // init prevSibling with 0
 	for i := len(siblings) - 1; i >= 0; i-- {
 		// check if the sibling is valid
-		valid := isValid(api, siblings[i], prevSibling, lastKey, prevKey)
-		prevKey = lastKey         // update prevKey to the lastKey
+		valid := isValid(api, siblings[i], prevSibling, leafKey, prevKey)
+		prevKey = leafKey         // update prevKey to the lastKey
 		prevSibling = siblings[i] // update prevSibling to the current sibling
 		// compute the intermediate leaf key and update the lastKey
-		lastKey, err = intermediateLeafKey(api, path[i], valid, lastKey, siblings[i])
+		leafKey, err = intermediateLeafKey(api, path[i], valid, leafKey, siblings[i])
 		if err != nil {
 			return err
 		}
 	}
-	api.AssertIsEqual(lastKey, root)
+	api.AssertIsEqual(leafKey, root)
 	return nil
 }
