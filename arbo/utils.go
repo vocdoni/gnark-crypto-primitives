@@ -13,6 +13,7 @@ import (
 )
 
 type censusConfig struct {
+	dir           string
 	validSiblings int
 	totalSiblings int
 	keyLen        int
@@ -21,11 +22,10 @@ type censusConfig struct {
 }
 
 func generateCensusProof(conf censusConfig, k, v []byte) (*big.Int, *big.Int, *big.Int, []*big.Int, error) {
-	dir := os.TempDir()
 	defer func() {
-		_ = os.RemoveAll(dir)
+		_ = os.RemoveAll(conf.dir)
 	}()
-	database, err := pebbledb.New(db.Options{Path: dir})
+	database, err := pebbledb.New(db.Options{Path: conf.dir})
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

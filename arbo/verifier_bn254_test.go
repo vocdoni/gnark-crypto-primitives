@@ -39,6 +39,7 @@ func TestVerifierBN254(t *testing.T) {
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
 	root, key, value, siblings, err := generateCensusProof(censusConfig{
+		dir:           t.TempDir() + "/bn254",
 		validSiblings: v_siblings,
 		totalSiblings: n_siblings,
 		keyLen:        k_len,

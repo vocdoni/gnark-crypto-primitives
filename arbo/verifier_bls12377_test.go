@@ -54,6 +54,7 @@ func TestVerifierBLS12377(t *testing.T) {
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
 	root, key, value, siblings, err := generateCensusProof(censusConfig{
+		dir:           t.TempDir() + "/bls12377",
 		validSiblings: v_siblings,
 		totalSiblings: n_siblings,
 		keyLen:        k_len,
