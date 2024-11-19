@@ -57,7 +57,9 @@ func TestAddressDerivation(t *testing.T) {
 		t.Fatal("invalid signature")
 	}
 	var sig ecdsa.Signature
-	sig.SetBytes(sigBin)
+	if _, err := sig.SetBytes(sigBin); err != nil {
+		t.Fatal(err)
+	}
 	r, s := new(big.Int), new(big.Int)
 	r.SetBytes(sig.R[:32])
 	s.SetBytes(sig.S[:32])
