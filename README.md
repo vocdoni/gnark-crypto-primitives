@@ -9,6 +9,7 @@ A set of custom circuits writted in [Gnark](https://github.com/ConsenSys/gnark) 
 3. Arbo (by [@arnaucube](https://github.com/arnaucube)) proof checker from [@vocdoni/arbo](https://github.com/vocdoni/vocdoni-node/tree/main/tree/arbo) ([source code](./arbo))
     - This is compatible with the SMT Verifier.
 4. Homomorphic Addition (using point reduction of TwistedEdwards curve to transform circom BabyJubJub points into Gnark BabyJubJub points) ([source code](./hadd)) ([helpers source code](./twistededwards))
+5. Address derivation from ECDSA public key (hash the key coords with Keccak256 and take the last 20 bytes) ([source code](./address)).
 
 **SMT Verifier vs. Arbo**
 

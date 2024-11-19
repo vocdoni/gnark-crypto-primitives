@@ -64,6 +64,7 @@ func TestAddressDerivation(t *testing.T) {
 	// get the address from the hash of the public key (taking the last 20 bytes
 	// of the Keccak-256 hash of the public key)
 	address := new(big.Int).SetBytes(hash[12:])
+	// compile the circuit and get the constraints
 	p := profile.Start()
 	now := time.Now()
 	_, _ = frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &testAddressCircuit{})
