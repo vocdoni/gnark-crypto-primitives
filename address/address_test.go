@@ -2,12 +2,10 @@ package address
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark-crypto/ecc/secp256k1/ecdsa"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -17,6 +15,7 @@ import (
 	"github.com/consensys/gnark/test"
 	"github.com/ethereum/go-ethereum/crypto"
 	qt "github.com/frankban/quicktest"
+	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
 )
 
 type testAddressCircuit struct {
@@ -35,27 +34,6 @@ func (c *testAddressCircuit) Define(api frontend.API) error {
 
 func TestAddressDerivation(t *testing.T) {
 	c := qt.New(t)
-
-	input := crypto.Keccak256Hash([]byte("hello")).Bytes()
-	// generate ecdsa key pair (privKey and publicKey)
-	privKey, err := crypto.GenerateKey()
-	c.Assert(err, qt.IsNil)
-	sigBin, err := crypto.Sign(input, privKey)
-	c.Assert(err, qt.IsNil)
-	// truncate the signature to 64 bytes (the first 32 bytes are the R value,
-	// the second 32 bytes are the S value)
-	sigBin = sigBin[:64]
-	valid := crypto.VerifySignature(crypto.CompressPubkey(&privKey.PublicKey), input, sigBin)
-	c.Assert(valid, qt.IsTrue)
-	var sig ecdsa.Signature
-	_, err = sig.SetBytes(sigBin)
-	c.Assert(err, qt.IsNil)
-	r, s := new(big.Int), new(big.Int)
-	r.SetBytes(sig.R[:32])
-	s.SetBytes(sig.S[:32])
-	// get the address from the hash of the public key (taking the last 20 bytes
-	// of the Keccak-256 hash of the public key)
-	address := crypto.PubkeyToAddress(privKey.PublicKey)
 	// compile the circuit and get the constraints
 	p := profile.Start()
 	now := time.Now()
@@ -63,12 +41,16 @@ func TestAddressDerivation(t *testing.T) {
 	fmt.Println("elapsed", time.Since(now))
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
+	// hash a test message and sign it
+	input := crypto.Keccak256Hash([]byte("hello")).Bytes()
+	testSig, err := internaltest.GenerateAccountAndSign(input)
+	c.Assert(err, qt.IsNil)
 	// init inputs
 	witness := testAddressCircuit{
-		Address: address.Big(),
+		Address: testSig.Address,
 		PublicKey: gecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]{
-			X: emulated.ValueOf[emulated.Secp256k1Fp](privKey.PublicKey.X),
-			Y: emulated.ValueOf[emulated.Secp256k1Fp](privKey.PublicKey.Y),
+			X: emulated.ValueOf[emulated.Secp256k1Fp](testSig.PublicKey.X),
+			Y: emulated.ValueOf[emulated.Secp256k1Fp](testSig.PublicKey.Y),
 		},
 	}
 	assert := test.NewAssert(t)

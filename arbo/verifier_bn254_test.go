@@ -15,6 +15,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
+	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -40,24 +41,24 @@ func TestVerifierBN254(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	root, key, value, siblings, err := GenerateCensusProofForTest(CensusConfig{
-		dir:           t.TempDir() + "/bn254",
-		validSiblings: v_siblings,
-		totalSiblings: n_siblings,
-		keyLen:        k_len,
-		hash:          arbotree.HashFunctionPoseidon,
-		baseFiled:     arbotree.BN254BaseField,
+	testCensus, err := internaltest.GenerateCensusProofForTest(internaltest.CensusTestConfig{
+		Dir:           t.TempDir() + "/bn254",
+		ValidSiblings: v_siblings,
+		TotalSiblings: n_siblings,
+		KeyLen:        k_len,
+		Hash:          arbotree.HashFunctionPoseidon,
+		BaseFiled:     arbotree.BN254BaseField,
 	}, util.RandomBytes(k_len), big.NewInt(10).Bytes())
 	c.Assert(err, qt.IsNil)
 	// init and print inputs
 	fSiblings := [n_siblings]frontend.Variable{}
 	for i := 0; i < n_siblings; i++ {
-		fSiblings[i] = siblings[i]
+		fSiblings[i] = testCensus.Siblings[i]
 	}
 	inputs := testVerifierBN254{
-		Root:     root,
-		Key:      key,
-		Value:    value,
+		Root:     testCensus.Root,
+		Key:      testCensus.Key,
+		Value:    testCensus.Value,
 		Siblings: fSiblings,
 	}
 	assert := test.NewAssert(t)
