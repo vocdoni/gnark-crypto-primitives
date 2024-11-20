@@ -14,7 +14,10 @@ func init() {
 // replaceSiblingHint gnark hint function receives the new sibling to set as
 // first input, the index of the sibling to be replaced as second input, and the
 // rest of the siblings as the rest of the inputs. The function should return
-// the new siblings with the replacement done.
+// the new siblings with the replacement done. The caller should ensure that the
+// the result of the hint is correct checking that every sibling is the same
+// that was passed as input except for the sibling with the index provided that
+// should be replaced with the new sibling.
 func replaceSiblingHint(_ *big.Int, inputs, outputs []*big.Int) error {
 	if len(inputs) != len(outputs)+2 {
 		return fmt.Errorf("invalid number of inputs/outputs")

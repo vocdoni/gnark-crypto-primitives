@@ -12,6 +12,7 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
+	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
 	"go.vocdoni.io/dvote/util"
@@ -30,6 +31,8 @@ func (circuit *testVerifierBN254) Define(api frontend.API) error {
 }
 
 func TestVerifierBN254(t *testing.T) {
+	c := qt.New(t)
+	// profile the circuit compilation
 	p := profile.Start()
 	now := time.Now()
 	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testVerifierBN254{})
@@ -37,7 +40,7 @@ func TestVerifierBN254(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	root, key, value, siblings, err := generateCensusProof(censusConfig{
+	root, key, value, siblings, err := generateCensusProofForTest(censusConfig{
 		dir:           t.TempDir() + "/bn254",
 		validSiblings: v_siblings,
 		totalSiblings: n_siblings,
@@ -45,9 +48,7 @@ func TestVerifierBN254(t *testing.T) {
 		hash:          arbotree.HashFunctionPoseidon,
 		baseFiled:     arbotree.BN254BaseField,
 	}, util.RandomBytes(k_len), big.NewInt(10).Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, qt.IsNil)
 	// init and print inputs
 	fSiblings := [n_siblings]frontend.Variable{}
 	for i := 0; i < n_siblings; i++ {

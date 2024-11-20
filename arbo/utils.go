@@ -21,7 +21,13 @@ type censusConfig struct {
 	baseFiled     *big.Int
 }
 
-func generateCensusProof(conf censusConfig, k, v []byte) (*big.Int, *big.Int, *big.Int, []*big.Int, error) {
+// generateCensusProofForTest generates a census proof for testing purposes, it
+// receives a configuration and a key-value pair to generate the proof for.
+// It returns the root, key, value, and siblings of the proof. The configuration
+// includes the temp directory to store the database, the number of valid
+// siblings, the total number of siblings, the key length, the hash function to
+// use in the merkle tree, and the base field to use in the finite field.
+func generateCensusProofForTest(conf censusConfig, k, v []byte) (*big.Int, *big.Int, *big.Int, []*big.Int, error) {
 	defer func() {
 		_ = os.RemoveAll(conf.dir)
 	}()
@@ -59,7 +65,7 @@ func generateCensusProof(conf censusConfig, k, v []byte) (*big.Int, *big.Int, *b
 	if !exist {
 		return nil, nil, nil, nil, fmt.Errorf("error building the merkle tree: key not found")
 	}
-	unpackedSiblings, err := arbo.UnpackSiblings(arbo.HashFunctionPoseidon, siblings)
+	unpackedSiblings, err := arbo.UnpackSiblings(tree.HashFunction(), siblings)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

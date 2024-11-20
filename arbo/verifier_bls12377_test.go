@@ -1,7 +1,6 @@
 package arbo
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/std/hash/mimc"
 	"github.com/consensys/gnark/test"
+	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"go.vocdoni.io/dvote/util"
 )
@@ -45,6 +45,8 @@ func (circuit *testVerifierBLS12377) Define(api frontend.API) error {
 }
 
 func TestVerifierBLS12377(t *testing.T) {
+	c := qt.New(t)
+	// profile the circuit compilation
 	p := profile.Start()
 	now := time.Now()
 	_, _ = frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &testVerifierBLS12377{})
@@ -52,7 +54,7 @@ func TestVerifierBLS12377(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	root, key, value, siblings, err := generateCensusProof(censusConfig{
+	root, key, value, siblings, err := generateCensusProofForTest(censusConfig{
 		dir:           t.TempDir() + "/bls12377",
 		validSiblings: v_siblings,
 		totalSiblings: n_siblings,
@@ -60,9 +62,7 @@ func TestVerifierBLS12377(t *testing.T) {
 		hash:          arbotree.HashFunctionMiMC_BLS12_377,
 		baseFiled:     arbotree.BLS12377BaseField,
 	}, util.RandomBytes(k_len), big.NewInt(10).Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Assert(err, qt.IsNil)
 	// init and print inputs
 	fSiblings := [n_siblings]frontend.Variable{}
 	for i := 0; i < n_siblings; i++ {
@@ -74,8 +74,6 @@ func TestVerifierBLS12377(t *testing.T) {
 		Value:    value,
 		Siblings: fSiblings,
 	}
-	binputs, _ := json.MarshalIndent(inputs, "  ", "  ")
-	fmt.Println("inputs", string(binputs))
 	assert := test.NewAssert(t)
 	assert.SolvingSucceeded(&testVerifierBLS12377{}, &inputs, test.WithCurves(ecc.BLS12_377), test.WithBackends(backend.GROTH16))
 }
