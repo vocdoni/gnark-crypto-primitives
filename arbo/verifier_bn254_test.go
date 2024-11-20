@@ -1,7 +1,6 @@
 package arbo
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -27,7 +26,7 @@ type testVerifierBN254 struct {
 
 func (circuit *testVerifierBN254) Define(api frontend.API) error {
 	// use poseidon hash function
-	return CheckProof(api, poseidon.Hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	return CheckInclusionProof(api, poseidon.Hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
 }
 
 func TestVerifierBN254(t *testing.T) {
@@ -60,8 +59,6 @@ func TestVerifierBN254(t *testing.T) {
 		Value:    value,
 		Siblings: fSiblings,
 	}
-	binputs, _ := json.MarshalIndent(inputs, "  ", "  ")
-	fmt.Println("inputs", string(binputs))
 	assert := test.NewAssert(t)
 	assert.SolvingSucceeded(&testVerifierBN254{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }

@@ -41,8 +41,7 @@ func (circuit *testVerifierBLS12377) Define(api frontend.API) error {
 		h.Write(data...)
 		return h.Sum(), nil
 	}
-
-	return CheckProof(api, hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	return CheckInclusionProof(api, hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
 }
 
 func TestVerifierBLS12377(t *testing.T) {

@@ -1,8 +1,6 @@
 package arbo
 
-import (
-	"github.com/consensys/gnark/frontend"
-)
+import "github.com/consensys/gnark/frontend"
 
 type Hash func(frontend.API, ...frontend.Variable) (frontend.Variable, error)
 
@@ -39,9 +37,46 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 	return api.Select(api.Or(cmp1, cmp2), 1, 0)
 }
 
-// CheckProof receives the parameters of a proof of Arbo to recalculate the
-// root with them and compare it with the provided one, verifiying the proof.
-func CheckProof(api frontend.API, hFn Hash, key, value, root frontend.Variable, siblings []frontend.Variable) error {
+// replaceFirstPaddedSibling function replaces the first padded sibling with the
+// new sibling provided. The function receives the new sibling, the siblings and
+// returns the new siblings with the replacement done. It first calculates the
+// index of the first padded sibling and then calls the hint function to replace
+// it. The hint function should return the new siblings with the replacement
+// done. The function ensures that the replacement was done correctly.
+func replaceFirstPaddedSibling(api frontend.API, newSibling frontend.Variable, siblings []frontend.Variable) ([]frontend.Variable, error) {
+	// the valid siblins are always the first n siblings that are not zero, so
+	// we need to iterate through the siblings in reverse order to find the
+	// first non-zero sibling and count the number of valid siblings from there,
+	// so the index of the last padded sibling is the number of valid siblings
+	index := frontend.Variable(0)
+	nonZeroFound := frontend.Variable(0)
+	for i := len(siblings) - 1; i >= 0; i-- {
+		isNotZero := strictCmp(api, siblings[i], 0)
+		nonZeroFound = api.Or(nonZeroFound, isNotZero)
+		index = api.Add(index, nonZeroFound)
+	}
+	// call the hint function to replace the sibling with the index to be
+	// replaced, the new sibling and the rest of the siblings
+	newSiblings, err := api.Compiler().NewHint(replaceSiblingHint, len(siblings),
+		append([]frontend.Variable{newSibling, index}, siblings...)...)
+	if err != nil {
+		return nil, err
+	}
+	// check that the hint successfully replaced the first padded sibling
+	newSiblingFound := frontend.Variable(0)
+	for i := 0; i < len(newSiblings); i++ {
+		correctIndex := api.IsZero(api.Sub(index, frontend.Variable(i)))
+		correctSibling := api.IsZero(api.Sub(newSiblings[i], newSibling))
+		newSiblingFound = api.Or(newSiblingFound, api.And(correctIndex, correctSibling))
+	}
+	api.AssertIsEqual(newSiblingFound, 1)
+	return newSiblings, nil
+}
+
+// CheckInclusionProof receives the parameters of an inclusion proof of Arbo to
+// recalculate the root with them and compare it with the provided one,
+// verifiying the proof.
+func CheckInclusionProof(api frontend.API, hFn Hash, key, value, root frontend.Variable, siblings []frontend.Variable) error {
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
 	path := api.ToBinary(key, len(siblings))
@@ -69,4 +104,25 @@ func CheckProof(api frontend.API, hFn Hash, key, value, root frontend.Variable, 
 	}
 	api.AssertIsEqual(leafKey, root)
 	return nil
+}
+
+// CheckExclusionProof receives the parameters of a exclusion proof of Arbo to
+// recalculate the root with them and compare it with the provided one. It
+// differs from CheckInclusionProof in that it receives the old key and value
+// to calculate the old leaf key and replace the first padded sibling with the
+// new sibling, then verifies the proof calling CheckInclusionProof with the
+// old sibling added to the siblings.
+func CheckExclusionProof(api frontend.API, hFn Hash, key, value, oldKey, oldValue, root frontend.Variable, siblings []frontend.Variable) error {
+	// calculate the old leaf key
+	newLeafKey, err := hFn(api, oldKey, oldValue, 1)
+	if err != nil {
+		return err
+	}
+	// replace the first padded sibling with the new sibling
+	newSiblings, err := replaceFirstPaddedSibling(api, newLeafKey, siblings)
+	if err != nil {
+		return err
+	}
+	// verify the proof with the old sibling added to the siblings
+	return CheckInclusionProof(api, hFn, key, value, root, newSiblings)
 }
