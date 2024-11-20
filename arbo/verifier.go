@@ -76,7 +76,9 @@ func replaceFirstPaddedSibling(api frontend.API, newSibling frontend.Variable, s
 // CheckInclusionProof receives the parameters of an inclusion proof of Arbo to
 // recalculate the root with them and compare it with the provided one,
 // verifiying the proof.
-func CheckInclusionProof(api frontend.API, hFn Hash, key, value, root frontend.Variable, siblings []frontend.Variable) error {
+func CheckInclusionProof(api frontend.API, hFn Hash, key, value, root frontend.Variable,
+	siblings []frontend.Variable,
+) error {
 	// calculate the path from the provided key to decide which leaf is the
 	// correct one in every level of the tree
 	path := api.ToBinary(key, len(siblings))
@@ -106,23 +108,32 @@ func CheckInclusionProof(api frontend.API, hFn Hash, key, value, root frontend.V
 	return nil
 }
 
-// CheckExclusionProof receives the parameters of a exclusion proof of Arbo to
-// recalculate the root with them and compare it with the provided one. It
-// differs from CheckInclusionProof in that it receives the old key and value
-// to calculate the old leaf key and replace the first padded sibling with the
-// new sibling, then verifies the proof calling CheckInclusionProof with the
-// old sibling added to the siblings.
-func CheckExclusionProof(api frontend.API, hFn Hash, key, value, oldKey, oldValue, root frontend.Variable, siblings []frontend.Variable) error {
-	// calculate the old leaf key
+// CheckAdditionProof method proves that the addition of a new key-value pair
+// to the tree is valid. It gets the root (old root), the key-value pair of the
+// first sibling of the new key-value pair (the old leaf key), and the rest of
+// the siblings to check. It also gets the root after including the new
+// key-value pair (the new leaf key) and the new key-value pair itself. It
+// includes the old leaf key as a sibling of the new leaf key and verifies the
+// proof of the new root. In this way, it ensures that the addition of the new
+// key-value pair is valid by checking the state of the tree before and after
+// the addition.
+func CheckAdditionProof(api frontend.API, hFn Hash, key, value, root, oldKey, oldValue,
+	oldRoot frontend.Variable, siblings []frontend.Variable,
+) error {
+	// check that the old proof is valid
+	if err := CheckInclusionProof(api, hFn, oldKey, oldValue, oldRoot, siblings); err != nil {
+		return err
+	}
+	// calculate the old leaf key (as new sibling)
 	newLeafKey, err := hFn(api, oldKey, oldValue, 1)
 	if err != nil {
 		return err
 	}
-	// replace the first padded sibling with the new sibling
+	// include the old leaf key as a sibling of the new leaf key
 	newSiblings, err := replaceFirstPaddedSibling(api, newLeafKey, siblings)
 	if err != nil {
 		return err
 	}
-	// verify the proof with the old sibling added to the siblings
+	// verify the proof of the new leaf key
 	return CheckInclusionProof(api, hFn, key, value, root, newSiblings)
 }
