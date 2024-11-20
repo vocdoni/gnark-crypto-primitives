@@ -7,7 +7,7 @@ require (
 	github.com/consensys/gnark-crypto v0.14.0
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
-	github.com/vocdoni/arbo v0.0.0-20241118081754-5c73e593c718
+	github.com/vocdoni/arbo v0.0.0-20241120112623-8e1cc943f444
 	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
 )
