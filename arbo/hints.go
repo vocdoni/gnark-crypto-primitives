@@ -22,11 +22,13 @@ func replaceSiblingHint(_ *big.Int, inputs, outputs []*big.Int) error {
 	// get the new sibling and the index to replace
 	newSibling := inputs[0]
 	index := int(inputs[1].Int64())
-	fmt.Println(outputs)
 	if index >= len(outputs) {
 		return fmt.Errorf("invalid index")
 	}
 	siblings := inputs[2:]
+	if len(siblings) != len(outputs) {
+		return fmt.Errorf("invalid number of siblings")
+	}
 	for i := 0; i < len(outputs); i++ {
 		if i == index {
 			outputs[i] = outputs[i].Set(newSibling)
@@ -34,6 +36,5 @@ func replaceSiblingHint(_ *big.Int, inputs, outputs []*big.Int) error {
 			outputs[i] = outputs[i].Set(siblings[i])
 		}
 	}
-	fmt.Println(outputs)
 	return nil
 }
