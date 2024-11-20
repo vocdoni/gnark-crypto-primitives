@@ -12,7 +12,7 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-type CensusConfig struct {
+type censusConfig struct {
 	dir           string
 	validSiblings int
 	totalSiblings int
@@ -27,7 +27,7 @@ type CensusConfig struct {
 // includes the temp directory to store the database, the number of valid
 // siblings, the total number of siblings, the key length, the hash function to
 // use in the merkle tree, and the base field to use in the finite field.
-func GenerateCensusProofForTest(conf CensusConfig, k, v []byte) (*big.Int, *big.Int, *big.Int, []*big.Int, error) {
+func GenerateCensusProofForTest(conf censusConfig, k, v []byte) (*big.Int, *big.Int, *big.Int, []*big.Int, error) {
 	defer func() {
 		_ = os.RemoveAll(conf.dir)
 	}()
