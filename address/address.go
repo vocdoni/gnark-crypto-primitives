@@ -9,8 +9,7 @@ import (
 )
 
 // elemToU8 converts a field element to a slice of uint8 by converting each
-// limb to a slice of uint8 and concatenating them. The order of the bytes is
-// reversed to match the endianness of the Ethereum address (msb).
+// limb to a slice of uint8 and concatenating them.
 func elemToU8[T emulated.FieldParams](api frontend.API, elem emulated.Element[T]) ([]uints.U8, error) {
 	bf, err := uints.New[uints.U64](api)
 	if err != nil {
@@ -24,12 +23,7 @@ func elemToU8[T emulated.FieldParams](api frontend.API, elem emulated.Element[T]
 			res = append(res, b)
 		}
 	}
-	// swap the order of the bytes
-	var swap []uints.U8
-	for i := len(res) - 1; i >= 0; i-- {
-		swap = append(swap, res[i])
-	}
-	return swap, nil
+	return res, nil
 }
 
 // u8ToVar converts a slice of uint8 to a variable by multiplying the current
@@ -46,27 +40,46 @@ func u8ToVar(api frontend.API, u8 []uints.U8) (frontend.Variable, error) {
 	return res, nil
 }
 
+// swapEndianness swaps the endianness of a slice of uint8 by reversing it.
+func swapEndianness(u8 []uints.U8) []uints.U8 {
+	var swap []uints.U8
+	for i := len(u8) - 1; i >= 0; i-- {
+		swap = append(swap, u8[i])
+	}
+	return swap
+}
+
 // DeriveAddress derives an Ethereum address from a public key by hashing the
 // public key and returning the last 20 bytes of the hash as an address into a
-// variable.
-func DeriveAddress(api frontend.API, pubKey ecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]) (frontend.Variable, error) {
+// variable. It also returns the address with the bytes in little-endian order.
+func DeriveAddress(api frontend.API, pubKey ecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]) (frontend.Variable, frontend.Variable, error) {
 	// convert public key coords to uint8 and concatenate them
 	xBytes, err := elemToU8(api, pubKey.X)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	yBytes, err := elemToU8(api, pubKey.Y)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	pubBytes := append(xBytes, yBytes...)
+	// swap endianness of the bytes and concatenate them
+	pubBytes := append(swapEndianness(xBytes), swapEndianness(yBytes)...)
 	// hash the public key
 	keccak, err := sha3.NewLegacyKeccak256(api)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	keccak.Write(pubBytes)
 	hash := keccak.Sum()
 	// return the last 20 bytes of the hash as an address
-	return u8ToVar(api, hash[12:])
+	addrBytes := hash[12:]
+	addr, err := u8ToVar(api, addrBytes)
+	if err != nil {
+		return 0, 0, err
+	}
+	addrLE, err := u8ToVar(api, swapEndianness(addrBytes))
+	if err != nil {
+		return 0, 0, err
+	}
+	return addr, addrLE, nil
 }
