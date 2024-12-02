@@ -6,7 +6,7 @@ import (
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 )
 
-func HomomorphicAdd(api frontend.API, a, b twistededwards.Point) (twistededwards.Point, error) {
+func Add(api frontend.API, a, b twistededwards.Point) (twistededwards.Point, error) {
 	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
 	if err != nil {
 		return twistededwards.Point{}, err

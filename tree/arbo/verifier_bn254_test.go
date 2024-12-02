@@ -14,7 +14,7 @@ import (
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
-	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
+	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
 	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
 	"go.vocdoni.io/dvote/util"
 )

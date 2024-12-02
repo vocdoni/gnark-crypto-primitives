@@ -1,7 +1,7 @@
 package smt
 
 import (
-	"github.com/vocdoni/gnark-crypto-primitives/poseidon"
+	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
 
 	"github.com/consensys/gnark/frontend"
 )

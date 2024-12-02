@@ -1,3 +1,10 @@
+// twistededwards package provides helper circuit functions to transform points
+// (x, y) from the TwistedEdwards format to Reduced TwistedEdwards format and
+// vice versa, over BabyJubJub curve. These functions are required because
+// Gnark uses the Reduced TwistedEdwards formula while Iden3 uses the standard
+// TwistedEdwards formula.
+//
+// Read more about this here: https://github.com/bellesmarta/baby_jubjub
 package twistededwards
 
 import "github.com/consensys/gnark/frontend"

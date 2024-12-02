@@ -29,14 +29,14 @@ type testHomomorphicAddCircuit struct {
 
 func (c *testHomomorphicAddCircuit) Define(api frontend.API) error {
 	// calculate and check c1
-	c1, err := HomomorphicAdd(api, c.A1, c.B1)
+	c1, err := Add(api, c.A1, c.B1)
 	if err != nil {
 		return err
 	}
 	api.AssertIsEqual(c.C1.X, c1.X)
 	api.AssertIsEqual(c.C1.Y, c1.Y)
 	// calculate and check c2
-	c2, err := HomomorphicAdd(api, c.A2, c.B2)
+	c2, err := Add(api, c.A2, c.B2)
 	if err != nil {
 		return err
 	}

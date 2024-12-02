@@ -1,4 +1,4 @@
-package address
+package ecdsa
 
 import (
 	"fmt"
