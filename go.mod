@@ -8,6 +8,8 @@ require (
 	github.com/ethereum/go-ethereum v1.14.7
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
+	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
+	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
 	github.com/vocdoni/arbo v0.0.0-20241120112623-8e1cc943f444
 	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
