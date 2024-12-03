@@ -15,7 +15,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
-	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
+	"github.com/vocdoni/gnark-crypto-primitives/testutil"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -41,7 +41,7 @@ func TestVerifierBN254(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	testCensus, err := internaltest.GenerateCensusProofForTest(internaltest.CensusTestConfig{
+	testCensus, err := testutil.GenerateCensusProofForTest(testutil.CensusTestConfig{
 		Dir:           t.TempDir() + "/bn254",
 		ValidSiblings: v_siblings,
 		TotalSiblings: n_siblings,

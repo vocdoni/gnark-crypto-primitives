@@ -15,7 +15,7 @@ import (
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
-	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
+	"github.com/vocdoni/gnark-crypto-primitives/testutil"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -55,7 +55,7 @@ func TestVerifierBLS12377(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	testCensus, err := internaltest.GenerateCensusProofForTest(internaltest.CensusTestConfig{
+	testCensus, err := testutil.GenerateCensusProofForTest(testutil.CensusTestConfig{
 		Dir:           t.TempDir() + "/bls12377",
 		ValidSiblings: v_siblings,
 		TotalSiblings: n_siblings,
