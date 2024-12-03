@@ -37,11 +37,11 @@ func (t *WrapperArbo) ProofWithTx(tx db.Reader, key *big.Int) (Assignment, error
 	if err != nil {
 		return assignment, err
 	}
-	assignment.OldRoot = arbo.BytesToBigInt(rootBytes)
-	assignment.NewRoot = arbo.BytesToBigInt(rootBytes)
+	assignment.OldRoot = arbo.BytesLEToBigInt(rootBytes)
+	assignment.NewRoot = arbo.BytesLEToBigInt(rootBytes)
 
 	bLen := t.HashFunction().Len()
-	keyBytes := arbo.BigIntToBytes(bLen, key)
+	keyBytes := arbo.BigIntToBytesLE(bLen, key)
 	oldKeyBytes, oldValueBytes, siblingsPacked, exists, err := t.GenProofWithTx(tx, keyBytes)
 	if err != nil {
 		return assignment, err
@@ -49,12 +49,12 @@ func (t *WrapperArbo) ProofWithTx(tx db.Reader, key *big.Int) (Assignment, error
 
 	if exists {
 		assignment.Fnc0 = 0
-		assignment.NewValue = arbo.BytesToBigInt(oldValueBytes)
+		assignment.NewValue = arbo.BytesLEToBigInt(oldValueBytes)
 	} else {
 		assignment.Fnc0 = 1
 	}
-	assignment.OldKey = arbo.BytesToBigInt(oldKeyBytes)
-	assignment.OldValue = arbo.BytesToBigInt(oldValueBytes)
+	assignment.OldKey = arbo.BytesLEToBigInt(oldKeyBytes)
+	assignment.OldValue = arbo.BytesLEToBigInt(oldValueBytes)
 	if len(oldKeyBytes) > 0 {
 		assignment.IsOld0 = 0
 	} else {
@@ -69,7 +69,7 @@ func (t *WrapperArbo) ProofWithTx(tx db.Reader, key *big.Int) (Assignment, error
 	assignment.Siblings = make([]*big.Int, t.levels)
 	for i := 0; i < len(assignment.Siblings); i++ {
 		if i < len(siblingsUnpacked) {
-			assignment.Siblings[i] = arbo.BytesToBigInt(siblingsUnpacked[i])
+			assignment.Siblings[i] = arbo.BytesLEToBigInt(siblingsUnpacked[i])
 		} else {
 			assignment.Siblings[i] = big.NewInt(0)
 		}
@@ -126,11 +126,11 @@ func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action fun
 	if err != nil {
 		return assignment, err
 	}
-	assignment.OldRoot = arbo.BytesToBigInt(oldRootBytes)
+	assignment.OldRoot = arbo.BytesLEToBigInt(oldRootBytes)
 
 	bLen := t.HashFunction().Len()
-	keyBytes := arbo.BigIntToBytes(bLen, key)
-	valueBytes := arbo.BigIntToBytes(bLen, value)
+	keyBytes := arbo.BigIntToBytesLE(bLen, key)
+	valueBytes := arbo.BigIntToBytesLE(bLen, value)
 
 	oldKeyBytes, oldValueBytes, err := t.Tree.GetWithTx(tx, keyBytes)
 	if err != nil && !errors.Is(err, arbo.ErrKeyNotFound) {
@@ -141,8 +141,8 @@ func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action fun
 		return assignment, err
 	}
 
-	assignment.OldKey = arbo.BytesToBigInt(oldKeyBytes)
-	assignment.OldValue = arbo.BytesToBigInt(oldValueBytes)
+	assignment.OldKey = arbo.BytesLEToBigInt(oldKeyBytes)
+	assignment.OldValue = arbo.BytesLEToBigInt(oldValueBytes)
 	if len(oldKeyBytes) > 0 {
 		assignment.IsOld0 = 0
 	} else {
@@ -153,7 +153,7 @@ func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action fun
 	if err != nil {
 		return assignment, err
 	}
-	assignment.NewRoot = arbo.BytesToBigInt(newRootBytes)
+	assignment.NewRoot = arbo.BytesLEToBigInt(newRootBytes)
 
 	_, _, siblingsPacked, exists, err := t.GenProofWithTx(tx, keyBytes)
 	if !exists {
@@ -174,7 +174,7 @@ func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action fun
 	assignment.Siblings = make([]*big.Int, t.levels)
 	for i := 0; i < len(assignment.Siblings); i++ {
 		if i < len(siblingsUnpacked) {
-			assignment.Siblings[i] = arbo.BytesToBigInt(siblingsUnpacked[i])
+			assignment.Siblings[i] = arbo.BytesLEToBigInt(siblingsUnpacked[i])
 		} else {
 			assignment.Siblings[i] = big.NewInt(0)
 		}
