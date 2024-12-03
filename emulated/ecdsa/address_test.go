@@ -16,7 +16,7 @@ import (
 	"github.com/consensys/gnark/test"
 	"github.com/ethereum/go-ethereum/crypto"
 	qt "github.com/frankban/quicktest"
-	internaltest "github.com/vocdoni/gnark-crypto-primitives/test"
+	"github.com/vocdoni/gnark-crypto-primitives/testutil"
 )
 
 type testAddressCircuit struct {
@@ -54,7 +54,7 @@ func TestAddressDerivation(t *testing.T) {
 	fmt.Println("constrains", p.NbConstraints())
 	// hash a test message and sign it
 	input := crypto.Keccak256Hash([]byte("hello")).Bytes()
-	testSig, err := internaltest.GenerateAccountAndSign(input)
+	testSig, err := testutil.GenerateAccountAndSign(input)
 	c.Assert(err, qt.IsNil)
 	addrLE := new(big.Int).SetBytes(goSwapEndianness(testSig.Address.Bytes()))
 	// init inputs

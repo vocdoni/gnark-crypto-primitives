@@ -1,4 +1,4 @@
-package gnarkcryptoprimitives
+package testutil
 
 import (
 	"fmt"
