@@ -28,13 +28,19 @@ type CensusTestConfig struct {
 	BaseFiled     *big.Int
 }
 
-// TestCensus is a structure to store the root, key, value, and siblings of a
+// TestCensusProofs is a structure to store the key, value, and siblings of a
 // census proof for testing purposes.
-type TestCensus struct {
-	Root     *big.Int
+type TestCensusProofs struct {
 	Key      *big.Int
 	Value    *big.Int
 	Siblings []*big.Int
+}
+
+// TestCensus is a structure to store the root and proofs of a census for
+// testing purposes.
+type TestCensus struct {
+	Root   *big.Int
+	Proofs []*TestCensusProofs
 }
 
 // TestSignature is a structure to store the public key, R, S, and address of a
@@ -53,7 +59,7 @@ type TestSignature struct {
 // includes the temp directory to store the database, the number of valid
 // siblings, the total number of siblings, the key length, the hash function to
 // use in the merkle tree, and the base field to use in the finite field.
-func GenerateCensusProofForTest(conf CensusTestConfig, k, v []byte) (*TestCensus, error) {
+func GenerateCensusProofForTest(conf CensusTestConfig, ks, vs [][]byte) (*TestCensus, error) {
 	defer func() {
 		_ = os.RemoveAll(conf.Dir)
 	}()
@@ -69,11 +75,12 @@ func GenerateCensusProofForTest(conf CensusTestConfig, k, v []byte) (*TestCensus
 	if err != nil {
 		return nil, err
 	}
-
-	k = arbotree.BigToFF(conf.BaseFiled, new(big.Int).SetBytes(k)).Bytes()
-	// add the first key-value pair
-	if err = tree.Add(k, v); err != nil {
-		return nil, err
+	// add the key-value pairs
+	for i, k := range ks {
+		k = arbotree.BigToFF(conf.BaseFiled, new(big.Int).SetBytes(k)).Bytes()
+		if err = tree.Add(k, vs[i]); err != nil {
+			return nil, err
+		}
 	}
 	// add random addresses
 	for i := 1; i < conf.ValidSiblings; i++ {
@@ -83,42 +90,48 @@ func GenerateCensusProofForTest(conf CensusTestConfig, k, v []byte) (*TestCensus
 			return nil, err
 		}
 	}
-	// generate the proof
-	_, _, siblings, exist, err := tree.GenProof(k)
-	if err != nil {
-		return nil, err
-	}
-	if !exist {
-		return nil, fmt.Errorf("error building the merkle tree: key not found")
-	}
-	unpackedSiblings, err := arbo.UnpackSiblings(tree.HashFunction(), siblings)
-	if err != nil {
-		return nil, err
-	}
-	paddedSiblings := make([]*big.Int, conf.TotalSiblings)
-	for i := 0; i < conf.TotalSiblings; i++ {
-		if i < len(unpackedSiblings) {
-			paddedSiblings[i] = arbo.BytesLEToBigInt(unpackedSiblings[i])
-		} else {
-			paddedSiblings[i] = big.NewInt(0)
-		}
-	}
+	// generate the proofs
 	root, err := tree.Root()
 	if err != nil {
 		return nil, err
 	}
-	verified, err := arbotree.CheckProof(tree.HashFunction(), k, v, root, siblings)
-	if !verified {
-		return nil, fmt.Errorf("error verifying the proof")
-	}
-	if err != nil {
-		return nil, err
+	proofs := []*TestCensusProofs{}
+	for i, k := range ks {
+		_, _, siblings, exist, err := tree.GenProof(k)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			return nil, fmt.Errorf("error building the merkle tree: key not found")
+		}
+		unpackedSiblings, err := arbo.UnpackSiblings(tree.HashFunction(), siblings)
+		if err != nil {
+			return nil, err
+		}
+		paddedSiblings := make([]*big.Int, conf.TotalSiblings)
+		for i := 0; i < conf.TotalSiblings; i++ {
+			if i < len(unpackedSiblings) {
+				paddedSiblings[i] = arbo.BytesLEToBigInt(unpackedSiblings[i])
+			} else {
+				paddedSiblings[i] = big.NewInt(0)
+			}
+		}
+		verified, err := arbotree.CheckProof(tree.HashFunction(), k, vs[i], root, siblings)
+		if !verified {
+			return nil, fmt.Errorf("error verifying the proof")
+		}
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, &TestCensusProofs{
+			Key:      arbo.BytesLEToBigInt(k),
+			Value:    new(big.Int).SetBytes(vs[i]),
+			Siblings: paddedSiblings,
+		})
 	}
 	return &TestCensus{
-		Root:     arbo.BytesLEToBigInt(root),
-		Key:      arbo.BytesLEToBigInt(k),
-		Value:    new(big.Int).SetBytes(v),
-		Siblings: paddedSiblings,
+		Root:   arbo.BytesLEToBigInt(root),
+		Proofs: proofs,
 	}, nil
 }
 

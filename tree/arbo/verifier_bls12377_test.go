@@ -62,17 +62,17 @@ func TestVerifierBLS12377(t *testing.T) {
 		KeyLen:        k_len,
 		Hash:          arbotree.HashFunctionMiMC_BLS12_377,
 		BaseFiled:     arbotree.BLS12377BaseField,
-	}, util.RandomBytes(k_len), big.NewInt(10).Bytes())
+	}, [][]byte{util.RandomBytes(k_len)}, [][]byte{big.NewInt(10).Bytes()})
 	c.Assert(err, qt.IsNil)
 	// init and print inputs
 	fSiblings := [n_siblings]frontend.Variable{}
 	for i := 0; i < n_siblings; i++ {
-		fSiblings[i] = testCensus.Siblings[i]
+		fSiblings[i] = testCensus.Proofs[0].Siblings[i]
 	}
 	inputs := testVerifierBLS12377{
 		Root:     testCensus.Root,
-		Key:      testCensus.Key,
-		Value:    testCensus.Value,
+		Key:      testCensus.Proofs[0].Key,
+		Value:    testCensus.Proofs[0].Value,
 		Siblings: fSiblings,
 	}
 	assert := test.NewAssert(t)
