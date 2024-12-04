@@ -1,4 +1,4 @@
-package hadd
+package elgamal
 
 import (
 	"crypto/rand"
@@ -18,34 +18,21 @@ import (
 	"github.com/vocdoni/vocdoni-z-sandbox/ecc/format"
 )
 
-type testHomomorphicAddCircuit struct {
-	A1 twistededwards.Point `gnark:"a1,public"`
-	A2 twistededwards.Point `gnark:"a2,public"`
-	B1 twistededwards.Point `gnark:"b1,public"`
-	B2 twistededwards.Point `gnark:"b2,public"`
-	C1 twistededwards.Point `gnark:"c1,public"`
-	C2 twistededwards.Point `gnark:"c2,public"`
+type testElGamalAddCircuit struct {
+	A   Ciphertext `gnark:",public"`
+	B   Ciphertext `gnark:",public"`
+	Sum Ciphertext `gnark:",public"`
 }
 
-func (c *testHomomorphicAddCircuit) Define(api frontend.API) error {
-	// calculate and check c1
-	c1, err := Add(api, c.A1, c.B1)
-	if err != nil {
-		return err
-	}
-	api.AssertIsEqual(c.C1.X, c1.X)
-	api.AssertIsEqual(c.C1.Y, c1.Y)
-	// calculate and check c2
-	c2, err := Add(api, c.A2, c.B2)
-	if err != nil {
-		return err
-	}
-	api.AssertIsEqual(c.C2.X, c2.X)
-	api.AssertIsEqual(c.C2.Y, c2.Y)
+func (c *testElGamalAddCircuit) Define(api frontend.API) error {
+	// calculate and check sum
+	sum := &Ciphertext{}
+	sum.Add(api, &c.A, &c.B)
+	sum.AssertIsEqual(api, &c.Sum)
 	return nil
 }
 
-func TestHomomorphicAdd(t *testing.T) {
+func TestElGamalAdd(t *testing.T) {
 	// generate a public mocked key and a random k to encrypt first message
 	_, pubKey := generateKeyPair()
 	k1, err := randomK()
@@ -80,40 +67,46 @@ func TestHomomorphicAdd(t *testing.T) {
 	// profiling the circuit compilation
 	p := profile.Start()
 	now := time.Now()
-	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testHomomorphicAddCircuit{})
+	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testElGamalAddCircuit{})
 	fmt.Println("elapsed", time.Since(now))
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// run the test to prove the homomorphic property
 	assert := test.NewAssert(t)
-	inputs := &testHomomorphicAddCircuit{
-		A1: twistededwards.Point{
-			X: xA1RTE,
-			Y: yA1RTE,
+	inputs := &testElGamalAddCircuit{
+		A: Ciphertext{
+			C1: twistededwards.Point{
+				X: xA1RTE,
+				Y: yA1RTE,
+			},
+			C2: twistededwards.Point{
+				X: xA2RTE,
+				Y: yA2RTE,
+			},
 		},
-		A2: twistededwards.Point{
-			X: xA2RTE,
-			Y: yA2RTE,
+		B: Ciphertext{
+			C1: twistededwards.Point{
+				X: xB1RTE,
+				Y: yB1RTE,
+			},
+			C2: twistededwards.Point{
+				X: xB2RTE,
+				Y: yB2RTE,
+			},
 		},
-		B1: twistededwards.Point{
-			X: xB1RTE,
-			Y: yB1RTE,
-		},
-		B2: twistededwards.Point{
-			X: xB2RTE,
-			Y: yB2RTE,
-		},
-		C1: twistededwards.Point{
-			X: xC1RTE,
-			Y: yC1RTE,
-		},
-		C2: twistededwards.Point{
-			X: xC2RTE,
-			Y: yC2RTE,
+		Sum: Ciphertext{
+			C1: twistededwards.Point{
+				X: xC1RTE,
+				Y: yC1RTE,
+			},
+			C2: twistededwards.Point{
+				X: xC2RTE,
+				Y: yC2RTE,
+			},
 		},
 	}
 	now = time.Now()
-	assert.SolvingSucceeded(&testHomomorphicAddCircuit{}, inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+	assert.SolvingSucceeded(&testElGamalAddCircuit{}, inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 	fmt.Println("elapsed", time.Since(now))
 }
 
