@@ -4,10 +4,16 @@ import (
 	ecc_tweds "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 )
 
 type Ciphertext struct {
 	C1, C2 twistededwards.Point
+}
+
+func NewCiphertext() *Ciphertext {
+	zero := babyjub.NewPoint()
+	return &Ciphertext{C1: twistededwards.Point{X: zero.X, Y: zero.Y}, C2: twistededwards.Point{X: zero.X, Y: zero.Y}}
 }
 
 // Add sets z to the sum x+y and returns z.
@@ -32,4 +38,13 @@ func (z *Ciphertext) AssertIsEqual(api frontend.API, x *Ciphertext) {
 	api.AssertIsEqual(z.C1.Y, x.C1.Y)
 	api.AssertIsEqual(z.C2.X, x.C2.X)
 	api.AssertIsEqual(z.C2.Y, x.C2.Y)
+}
+
+// Select if b is true, sets z = i1, else z = i2, and returns z
+func (z *Ciphertext) Select(api frontend.API, b frontend.Variable, i1 *Ciphertext, i2 *Ciphertext) *Ciphertext {
+	z.C1.X = api.Select(b, i1.C1.X, i2.C1.X)
+	z.C1.Y = api.Select(b, i1.C1.Y, i2.C1.Y)
+	z.C2.X = api.Select(b, i1.C2.X, i2.C2.X)
+	z.C2.Y = api.Select(b, i1.C2.Y, i2.C2.Y)
+	return z
 }
