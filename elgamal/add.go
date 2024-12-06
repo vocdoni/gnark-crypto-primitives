@@ -33,3 +33,12 @@ func (z *Ciphertext) AssertIsEqual(api frontend.API, x *Ciphertext) {
 	api.AssertIsEqual(z.C2.X, x.C2.X)
 	api.AssertIsEqual(z.C2.Y, x.C2.Y)
 }
+
+// Select if b is true, sets z = i1, else z = i2, and returns z
+func (z *Ciphertext) Select(api frontend.API, b frontend.Variable, i1 *Ciphertext, i2 *Ciphertext) *Ciphertext {
+	z.C1.X = api.Select(b, i1.C1.X, i2.C1.X)
+	z.C1.Y = api.Select(b, i1.C1.Y, i2.C1.Y)
+	z.C2.X = api.Select(b, i1.C2.X, i2.C2.X)
+	z.C2.Y = api.Select(b, i1.C2.Y, i2.C2.Y)
+	return z
+}
