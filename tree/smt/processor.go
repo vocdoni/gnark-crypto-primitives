@@ -2,15 +2,20 @@ package smt
 
 import (
 	"github.com/consensys/gnark/frontend"
+	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
 
 // based on https://github.com/iden3/circomlib/blob/cff5ab6288b55ef23602221694a6a38a0239dcc0/circuits/smt/smtprocessor.circom
 
-func Processor(api frontend.API, oldRoot frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, newKey, newValue, fnc0, fnc1 frontend.Variable) (newRoot frontend.Variable) {
+func Processor(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, newKey, newValue, fnc0, fnc1 frontend.Variable) (newRoot frontend.Variable) {
+	hash1Old := Hash1(api, hFn, oldKey, oldValue)
+	hash1New := Hash1(api, hFn, newKey, newValue)
+	return ProcessorWithLeafHash(api, hFn, oldRoot, siblings, oldKey, hash1Old, isOld0, newKey, hash1New, fnc0, fnc1)
+}
+
+func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, siblings []frontend.Variable, oldKey, hash1Old, isOld0, newKey, hash1New, fnc0, fnc1 frontend.Variable) (newRoot frontend.Variable) {
 	levels := len(siblings)
 	enabled := api.Sub(api.Add(fnc0, fnc1), api.Mul(fnc0, fnc1))
-	hash1Old := Hash1(api, oldKey, oldValue)
-	hash1New := Hash1(api, newKey, newValue)
 	n2bOld := api.ToBinary(oldKey, api.Compiler().FieldBitLen())
 	n2bNew := api.ToBinary(newKey, api.Compiler().FieldBitLen())
 	smtLevIns := LevIns(api, enabled, siblings)
@@ -40,9 +45,9 @@ func Processor(api frontend.API, oldRoot frontend.Variable, siblings []frontend.
 	levelsNewRoot := make([]frontend.Variable, levels)
 	for i := levels - 1; i >= 0; i-- {
 		if i == levels-1 {
-			levelsOldRoot[i], levelsNewRoot[i] = ProcessorLevel(api, stTop[i], stOld0[i], stBot[i], stNew1[i], stUpd[i], siblings[i], hash1Old, hash1New, n2bNew[i], 0, 0)
+			levelsOldRoot[i], levelsNewRoot[i] = ProcessorLevel(api, hFn, stTop[i], stOld0[i], stBot[i], stNew1[i], stUpd[i], siblings[i], hash1Old, hash1New, n2bNew[i], 0, 0)
 		} else {
-			levelsOldRoot[i], levelsNewRoot[i] = ProcessorLevel(api, stTop[i], stOld0[i], stBot[i], stNew1[i], stUpd[i], siblings[i], hash1Old, hash1New, n2bNew[i], levelsOldRoot[i+1], levelsNewRoot[i+1])
+			levelsOldRoot[i], levelsNewRoot[i] = ProcessorLevel(api, hFn, stTop[i], stOld0[i], stBot[i], stNew1[i], stUpd[i], siblings[i], hash1Old, hash1New, n2bNew[i], levelsOldRoot[i+1], levelsNewRoot[i+1])
 		}
 	}
 

@@ -5,14 +5,12 @@ import (
 	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
 
-type Hash func(frontend.API, ...frontend.Variable) (frontend.Variable, error)
-
 // intermediateLeafKey function calculates the intermediate leaf key of the
 // path position provided. The leaf key is calculated by hashing the sibling
 // and the key provided. The position of the sibling and the key is decided by
 // the path position. If the current sibling is not valid, the method will
 // return the key provided.
-func intermediateLeafKey(api frontend.API, hFn Hash, ipath, valid, key, sibling frontend.Variable) (frontend.Variable, error) {
+func intermediateLeafKey(api frontend.API, hFn utils.Hasher, ipath, valid, key, sibling frontend.Variable) (frontend.Variable, error) {
 	// l, r = path == 1 ? sibling, key : key, sibling
 	l, r := api.Select(ipath, sibling, key), api.Select(ipath, key, sibling)
 	// intermediateLeafKey = H(l | r)
@@ -35,7 +33,7 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 // CheckInclusionProof receives the parameters of an inclusion proof of Arbo to
 // recalculate the root with them and compare it with the provided one,
 // verifiying the proof.
-func CheckInclusionProof(api frontend.API, hFn Hash, key, value, root frontend.Variable,
+func CheckInclusionProof(api frontend.API, hFn utils.Hasher, key, value, root frontend.Variable,
 	siblings []frontend.Variable,
 ) error {
 	// calculate the path from the provided key to decide which leaf is the

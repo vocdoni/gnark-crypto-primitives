@@ -2,20 +2,21 @@ package smt
 
 import (
 	"github.com/consensys/gnark/frontend"
+	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
 
-func InclusionVerifier(api frontend.API, root frontend.Variable, siblings []frontend.Variable, key, value frontend.Variable) {
-	Verifier(api, 1, root, siblings, key, value, 0, key, value, 0)
+func InclusionVerifier(api frontend.API, hFn utils.Hasher, root frontend.Variable, siblings []frontend.Variable, key, value frontend.Variable) {
+	Verifier(api, hFn, 1, root, siblings, key, value, 0, key, value, 0)
 }
 
-func ExclusionVerifier(api frontend.API, root frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, key frontend.Variable) {
-	Verifier(api, 1, root, siblings, oldKey, oldValue, isOld0, key, 0, 1)
+func ExclusionVerifier(api frontend.API, hFn utils.Hasher, root frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, key frontend.Variable) {
+	Verifier(api, hFn, 1, root, siblings, oldKey, oldValue, isOld0, key, 0, 1)
 }
 
-func Verifier(api frontend.API, enabled, root frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, key, value, fnc frontend.Variable) {
+func Verifier(api frontend.API, hFn utils.Hasher, enabled, root frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, key, value, fnc frontend.Variable) {
 	nLevels := len(siblings)
-	hash1Old := Hash1(api, oldKey, oldValue)
-	hash1New := Hash1(api, key, value)
+	hash1Old := Hash1(api, hFn, oldKey, oldValue)
+	hash1New := Hash1(api, hFn, key, value)
 	n2bNew := api.ToBinary(key, api.Compiler().FieldBitLen())
 	smtLevIns := LevIns(api, enabled, siblings)
 
@@ -36,9 +37,9 @@ func Verifier(api frontend.API, enabled, root frontend.Variable, siblings []fron
 	levels := make([]frontend.Variable, nLevels)
 	for i := nLevels - 1; i >= 0; i-- {
 		if i == nLevels-1 {
-			levels[i] = VerifierLevel(api, stTop[i], stIOld[i], stINew[i], siblings[i], hash1Old, hash1New, n2bNew[i], 0)
+			levels[i] = VerifierLevel(api, hFn, stTop[i], stIOld[i], stINew[i], siblings[i], hash1Old, hash1New, n2bNew[i], 0)
 		} else {
-			levels[i] = VerifierLevel(api, stTop[i], stIOld[i], stINew[i], siblings[i], hash1Old, hash1New, n2bNew[i], levels[i+1])
+			levels[i] = VerifierLevel(api, hFn, stTop[i], stIOld[i], stINew[i], siblings[i], hash1Old, hash1New, n2bNew[i], levels[i+1])
 		}
 	}
 
