@@ -12,7 +12,7 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
-	"github.com/vocdoni/vocdoni-z-sandbox/ecc/format"
+	"github.com/vocdoni/vocdoni-z-sandbox/crypto/ecc/format"
 )
 
 type testFromTwistedEdwards struct {

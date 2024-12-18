@@ -3,15 +3,15 @@ module github.com/vocdoni/gnark-crypto-primitives
 go 1.23.2
 
 require (
-	github.com/consensys/gnark v0.11.0
-	github.com/consensys/gnark-crypto v0.14.0
-	github.com/ethereum/go-ethereum v1.14.7
+	github.com/consensys/gnark v0.11.1-0.20241210204654-a1e66c1d6b4d
+	github.com/consensys/gnark-crypto v0.14.1-0.20241213223322-afee1955665f
+	github.com/ethereum/go-ethereum v1.14.12
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
 	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
-	github.com/vocdoni/arbo v0.0.0-20241120112623-8e1cc943f444
-	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241113074257-1a711ad38a6b
+	github.com/vocdoni/arbo v0.0.0-20241216103934-e64315269b49
+	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241216104229-fa0b063e636c
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
 )
 
@@ -20,7 +20,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.14.3 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.3.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
@@ -28,7 +27,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.2 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
-	github.com/consensys/bavard v0.1.22 // indirect
+	github.com/consensys/bavard v0.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dchest/blake512 v1.0.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect

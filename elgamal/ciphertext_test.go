@@ -15,7 +15,7 @@ import (
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
 	"github.com/iden3/go-iden3-crypto/babyjub"
-	"github.com/vocdoni/vocdoni-z-sandbox/ecc/format"
+	"github.com/vocdoni/vocdoni-z-sandbox/crypto/ecc/format"
 )
 
 type testElGamalAddCircuit struct {
