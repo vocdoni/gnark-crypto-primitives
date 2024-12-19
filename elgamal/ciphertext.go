@@ -7,6 +7,57 @@ import (
 	"github.com/iden3/go-iden3-crypto/babyjub"
 )
 
+const NumCiphertexts = 2
+
+type Ciphertexts [NumCiphertexts]Ciphertext
+
+func NewCiphertexts() *Ciphertexts {
+	cs := &Ciphertexts{}
+	for i := range cs {
+		cs[i] = *NewCiphertext()
+	}
+	return cs
+}
+
+// Add sets z to the sum x+y and returns z.
+//
+// Panics if twistededwards curve init fails.
+func (cs *Ciphertexts) Add(api frontend.API, x, y *Ciphertexts) *Ciphertexts {
+	for i := range cs {
+		cs[i].Add(api, &x[i], &y[i])
+	}
+	return cs
+}
+
+// AssertIsEqual fails if any of the fields differ between z and x
+func (cs *Ciphertexts) AssertIsEqual(api frontend.API, x *Ciphertexts) {
+	for i := range cs {
+		cs[i].AssertIsEqual(api, &x[i])
+	}
+}
+
+// Select if b is true, sets z = i1, else z = i2, and returns z
+func (cs *Ciphertexts) Select(api frontend.API, b frontend.Variable, i1 *Ciphertexts, i2 *Ciphertexts) *Ciphertexts {
+	for i := range cs {
+		cs[i] = *cs[i].Select(api, b, &i1[i], &i2[i])
+	}
+	return cs
+}
+
+// Serialize returns a slice with the C1.X, C1.Y, C2.X, C2.Y in order
+func (cs *Ciphertexts) Serialize() []frontend.Variable {
+	vars := []frontend.Variable{}
+	for _, z := range cs {
+		vars = append(vars,
+			z.C1.X,
+			z.C1.Y,
+			z.C2.X,
+			z.C2.Y,
+		)
+	}
+	return vars
+}
+
 type Ciphertext struct {
 	C1, C2 twistededwards.Point
 }
