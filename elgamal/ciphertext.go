@@ -1,13 +1,14 @@
 package elgamal
 
 import (
+	"math/big"
+
 	ecc_tweds "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/iden3/go-iden3-crypto/babyjub"
 )
 
-const NumCiphertexts = 2
+const NumCiphertexts = 8
 
 type Ciphertexts [NumCiphertexts]Ciphertext
 
@@ -63,8 +64,8 @@ type Ciphertext struct {
 }
 
 func NewCiphertext() *Ciphertext {
-	zero := babyjub.NewPoint()
-	return &Ciphertext{C1: twistededwards.Point{X: zero.X, Y: zero.Y}, C2: twistededwards.Point{X: zero.X, Y: zero.Y}}
+	zero := twistededwards.Point{X: big.NewInt(0), Y: big.NewInt(1)}
+	return &Ciphertext{C1: zero, C2: zero}
 }
 
 // Add sets z to the sum x+y and returns z.
