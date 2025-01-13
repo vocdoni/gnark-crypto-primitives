@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/math/bits"
 	"github.com/consensys/gnark/std/math/emulated"
 	"github.com/consensys/gnark/std/math/uints"
 )
@@ -27,6 +28,33 @@ func PackScalarToVar[S emulated.FieldParams](api frontend.API, s *emulated.Eleme
 		res = api.Add(res, api.Mul(reduced.Limbs[i], coef.Lsh(one, nbBits*uint(i))))
 	}
 	return res, nil
+}
+
+// UnpackVarToScalar function converts a frontend.Variable to an emulated
+// element of the S field. It is the inverse of PackScalarToVar. The variable
+// is transformed into a binary representation and then grouped into limbs of
+// nbBits until all limbs are filled or all bits are used. Then the limbs are
+// converted to an emulated element of the field. If something goes wrong, an
+// error is returned.
+func UnpackVarToScalar[S emulated.FieldParams](api frontend.API, v frontend.Variable) (*emulated.Element[S], error) {
+	// get field parameters
+	var fr S
+	nBits := int(fr.BitsPerLimb())
+	nLimbs := int(fr.NbLimbs())
+	limbs := make([]frontend.Variable, nLimbs)
+	// get binary representation of the variable
+	vBin := bits.ToBinary(api, v, bits.WithNbDigits(nBits*nLimbs))
+	// group bits into limbs of nbBits until fill all limbs or all bits
+	for i := 0; i < nLimbs; i++ {
+		g := vBin[i*nBits : (i+1)*nBits]
+		limbs[i] = bits.FromBinary(api, g)
+	}
+	// convert limbs to emulated element of the field
+	field, err := emulated.NewField[S](api)
+	if err != nil {
+		return nil, err
+	}
+	return field.NewElement(limbs), nil
 }
 
 // ElemToU8 converts a field element to a slice of uint8 by converting each
