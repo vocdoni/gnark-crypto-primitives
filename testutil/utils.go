@@ -25,7 +25,7 @@ type CensusTestConfig struct {
 	TotalSiblings int
 	KeyLen        int
 	Hash          arbotree.HashFunction
-	BaseFiled     *big.Int
+	BaseField     *big.Int
 }
 
 // TestCensusProofs is a structure to store the key, value, and siblings of a
@@ -77,14 +77,14 @@ func GenerateCensusProofForTest(conf CensusTestConfig, ks, vs [][]byte) (*TestCe
 	}
 	// add the key-value pairs
 	for i, k := range ks {
-		k = arbotree.BigToFF(conf.BaseFiled, new(big.Int).SetBytes(k)).Bytes()
+		k = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes()
 		if err = tree.Add(k, vs[i]); err != nil {
 			return nil, err
 		}
 	}
 	// add random addresses
 	for i := 1; i < conf.ValidSiblings; i++ {
-		rk := arbotree.BigToFF(conf.BaseFiled, new(big.Int).SetBytes(util.RandomBytes(conf.KeyLen))).Bytes()
+		rk := arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(util.RandomBytes(conf.KeyLen))).Bytes()
 		rv := new(big.Int).SetBytes(util.RandomBytes(8)).Bytes()
 		if err = tree.Add(rk, rv); err != nil {
 			return nil, err

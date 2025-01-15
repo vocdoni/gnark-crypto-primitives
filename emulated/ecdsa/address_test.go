@@ -2,7 +2,6 @@ package ecdsa
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 	"time"
 
@@ -20,18 +19,16 @@ import (
 )
 
 type testAddressCircuit struct {
-	Address             frontend.Variable `gnark:",public"`
-	AddressLittleEndian frontend.Variable `gnark:",public"`
-	PublicKey           gecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]
+	Address   frontend.Variable `gnark:",public"`
+	PublicKey gecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]
 }
 
 func (c *testAddressCircuit) Define(api frontend.API) error {
-	addr, addrLE, err := DeriveAddress(api, c.PublicKey)
+	addr, err := DeriveAddress(api, c.PublicKey)
 	if err != nil {
 		return err
 	}
 	api.AssertIsEqual(c.Address, addr)
-	api.AssertIsEqual(c.AddressLittleEndian, addrLE)
 	return nil
 }
 
@@ -56,11 +53,9 @@ func TestAddressDerivation(t *testing.T) {
 	input := crypto.Keccak256Hash([]byte("hello")).Bytes()
 	testSig, err := testutil.GenerateAccountAndSign(input)
 	c.Assert(err, qt.IsNil)
-	addrLE := new(big.Int).SetBytes(goSwapEndianness(testSig.Address.Bytes()))
 	// init inputs
 	witness := testAddressCircuit{
-		Address:             testSig.Address,
-		AddressLittleEndian: addrLE,
+		Address: testSig.Address,
 		PublicKey: gecdsa.PublicKey[emulated.Secp256k1Fp, emulated.Secp256k1Fr]{
 			X: emulated.ValueOf[emulated.Secp256k1Fp](testSig.PublicKey.X),
 			Y: emulated.ValueOf[emulated.Secp256k1Fp](testSig.PublicKey.Y),
