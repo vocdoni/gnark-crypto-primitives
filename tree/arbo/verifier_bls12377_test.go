@@ -61,7 +61,7 @@ func TestVerifierBLS12377(t *testing.T) {
 		TotalSiblings: n_siblings,
 		KeyLen:        k_len,
 		Hash:          arbotree.HashFunctionMiMC_BLS12_377,
-		BaseFiled:     arbotree.BLS12377BaseField,
+		BaseField:     arbotree.BLS12377BaseField,
 	}, [][]byte{util.RandomBytes(k_len)}, [][]byte{big.NewInt(10).Bytes()})
 	c.Assert(err, qt.IsNil)
 	// init and print inputs

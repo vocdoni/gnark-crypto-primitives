@@ -32,14 +32,6 @@ func (c *testAddressCircuit) Define(api frontend.API) error {
 	return nil
 }
 
-func goSwapEndianness(b []byte) []byte {
-	var swap []byte
-	for i := len(b) - 1; i >= 0; i-- {
-		swap = append(swap, b[i])
-	}
-	return swap
-}
-
 func TestAddressDerivation(t *testing.T) {
 	c := qt.New(t)
 	// compile the circuit and get the constraints

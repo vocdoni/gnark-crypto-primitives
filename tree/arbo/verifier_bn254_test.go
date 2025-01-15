@@ -47,7 +47,7 @@ func TestVerifierBN254(t *testing.T) {
 		TotalSiblings: n_siblings,
 		KeyLen:        k_len,
 		Hash:          arbotree.HashFunctionPoseidon,
-		BaseFiled:     arbotree.BN254BaseField,
+		BaseField:     arbotree.BN254BaseField,
 	}, [][]byte{util.RandomBytes(k_len)}, [][]byte{big.NewInt(10).Bytes()})
 	c.Assert(err, qt.IsNil)
 	// init and print inputs
