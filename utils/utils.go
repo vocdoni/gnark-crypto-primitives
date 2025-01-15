@@ -41,14 +41,7 @@ func UnpackVarToScalar[S emulated.FieldParams](api frontend.API, v frontend.Vari
 	var fr S
 	nBits := int(fr.BitsPerLimb())
 	nLimbs := int(fr.NbLimbs())
-	limbs := make([]frontend.Variable, nLimbs)
-	// get binary representation of the variable
-	vBin := bits.ToBinary(api, v, bits.WithNbDigits(nBits*nLimbs))
-	// group bits into limbs of nbBits until fill all limbs or all bits
-	for i := 0; i < nLimbs; i++ {
-		g := vBin[i*nBits : (i+1)*nBits]
-		limbs[i] = bits.FromBinary(api, g)
-	}
+	limbs := varToLimbsOfBits(api, v, nLimbs, nBits)
 	// convert limbs to emulated element of the field
 	field, err := emulated.NewField[S](api)
 	if err != nil {
@@ -89,6 +82,27 @@ func U8ToVar(api frontend.API, u8 []uints.U8) (frontend.Variable, error) {
 	return res, nil
 }
 
+// VarToU8 converts a variable to a slice of uint8. First, the variable is
+// converted to a slice of uint64, then each uint64 is converted to a slice
+// of uint8 and concatenated. Finally, the endianness is swapped to match the
+// expected endianness of the slice of uint8.
+func VarToU8(api frontend.API, v frontend.Variable) ([]uints.U8, error) {
+	limbs := varToLimbsOfBits(api, v, 4, 64)
+	// convert each limb to []uint8
+	bf, err := uints.New[uints.U64](api)
+	if err != nil {
+		return nil, err
+	}
+	var u8 []uints.U8
+	for _, limb := range limbs {
+		bLimb := bf.ValueOf(limb)
+		for _, b := range bLimb {
+			u8 = append(u8, b)
+		}
+	}
+	return SwapEndianness(u8), nil
+}
+
 // SwapEndianness swaps the endianness of a slice of uint8 by reversing it.
 func SwapEndianness(u8 []uints.U8) []uints.U8 {
 	var swap []uints.U8
@@ -104,4 +118,20 @@ func SwapEndianness(u8 []uints.U8) []uints.U8 {
 //	0 a == b
 func StrictCmp(api frontend.API, a, b frontend.Variable) frontend.Variable {
 	return api.Select(api.IsZero(api.Sub(a, b)), 0, 1)
+}
+
+// varToLimbsOfBits function converts a variable to a slice of variables, each
+// representing a limb of nbBits. The variable is first converted to a binary
+// representation, then the bits are grouped into limbs of nbBits until all
+// limbs are filled or all bits are used.
+func varToLimbsOfBits(api frontend.API, v frontend.Variable, nLimbs, nBits int) []frontend.Variable {
+	limbs := make([]frontend.Variable, nLimbs)
+	// get binary representation of the variable
+	vBin := bits.ToBinary(api, v, bits.WithNbDigits(nBits*nLimbs))
+	// group bits into limbs of nbBits until fill all limbs or all bits
+	for i := 0; i < nLimbs; i++ {
+		g := vBin[i*nBits : (i+1)*nBits]
+		limbs[i] = bits.FromBinary(api, g)
+	}
+	return limbs
 }
