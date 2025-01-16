@@ -19,7 +19,7 @@ type testPackUnpackCircuit struct {
 
 func (c *testPackUnpackCircuit) Define(api frontend.API) error {
 	// pack the emulated element to a variable
-	packed, err := PackScalarToVar[sw_bls12377.ScalarField](api, &c.Input)
+	packed, err := PackScalarToVar[sw_bls12377.ScalarField](api, c.Input)
 	if err != nil {
 		return err
 	}

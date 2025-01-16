@@ -13,13 +13,13 @@ import (
 // used to convert the scalar elements of a field to frontend.Variable to be
 // used in the circuit. The resulting frontend.Variable will be packed with
 // in the field of the circuit compiler, so it should be used with care.
-func PackScalarToVar[S emulated.FieldParams](api frontend.API, s *emulated.Element[S]) (frontend.Variable, error) {
+func PackScalarToVar[S emulated.FieldParams](api frontend.API, s emulated.Element[S]) (frontend.Variable, error) {
 	var fr S
 	field, err := emulated.NewField[S](api)
 	if err != nil {
 		return nil, err
 	}
-	reduced := field.Reduce(s)
+	reduced := field.Reduce(&s)
 	var res frontend.Variable = 0
 	nbBits := fr.BitsPerLimb()
 	coef := new(big.Int)
