@@ -14,9 +14,13 @@ func ExclusionVerifier(api frontend.API, hFn utils.Hasher, root frontend.Variabl
 }
 
 func Verifier(api frontend.API, hFn utils.Hasher, enabled, root frontend.Variable, siblings []frontend.Variable, oldKey, oldValue, isOld0, key, value, fnc frontend.Variable) {
-	nLevels := len(siblings)
 	hash1Old := Hash1(api, hFn, oldKey, oldValue)
 	hash1New := Hash1(api, hFn, key, value)
+	VerifierWithLeafHash(api, hFn, enabled, root, siblings, oldKey, hash1Old, isOld0, key, hash1New, fnc)
+}
+
+func VerifierWithLeafHash(api frontend.API, hFn utils.Hasher, enabled, root frontend.Variable, siblings []frontend.Variable, oldKey, hash1Old, isOld0, key, hash1New, fnc frontend.Variable) {
+	nLevels := len(siblings)
 	n2bNew := api.ToBinary(key, api.Compiler().FieldBitLen())
 	smtLevIns := LevIns(api, enabled, siblings)
 
