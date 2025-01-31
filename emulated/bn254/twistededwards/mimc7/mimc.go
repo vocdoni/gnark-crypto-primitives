@@ -1,10 +1,16 @@
 package mimc7
 
 import (
+	"fmt"
+
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/emulated/sw_bn254"
 	"github.com/consensys/gnark/std/math/emulated"
 )
+
+// maxInputs constant is the maximum number of inputs that the MiMC hash
+// function can take. Experimentally, the maximum number of inputs is 62.
+const maxInputs = 62
 
 type MiMC struct {
 	params []emulated.Element[sw_bn254.ScalarField] // slice containing constants for the encryption rounds
@@ -28,8 +34,12 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 }
 
 // Write adds more data to the running hash.
-func (h *MiMC) Write(data ...emulated.Element[sw_bn254.ScalarField]) {
+func (h *MiMC) Write(data ...emulated.Element[sw_bn254.ScalarField]) error {
+	if len(h.data)+len(data) > maxInputs {
+		return fmt.Errorf("too many inputs. Max inputs is %d", maxInputs)
+	}
 	h.data = append(h.data, data...)
+	return nil
 }
 
 // Reset resets the Hash to its initial state.
