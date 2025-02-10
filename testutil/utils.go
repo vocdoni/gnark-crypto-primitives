@@ -77,8 +77,8 @@ func GenerateCensusProofForTest(conf CensusTestConfig, ks, vs [][]byte) (*TestCe
 	}
 	// add the key-value pairs
 	for i, k := range ks {
-		k = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes()
-		if err = tree.Add(k, vs[i]); err != nil {
+		ks[i] = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes()
+		if err = tree.Add(ks[i], vs[i]); err != nil {
 			return nil, err
 		}
 	}
