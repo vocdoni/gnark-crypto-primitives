@@ -13,10 +13,12 @@ import (
 	"github.com/consensys/gnark/std/math/emulated"
 )
 
-var scalingFactor = frontend.Variable("6360561867910373094066688120553762416144456282423235903351243436111059670888")
-var emulatedScalingFactor = emulated.Element[sw_bn254.ScalarField]{
-	Limbs: []frontend.Variable{7817090900423792488, 8405395627841593623, 3205086078052995447, 1013295966202553675},
-}
+var (
+	scalingFactor         = frontend.Variable("6360561867910373094066688120553762416144456282423235903351243436111059670888")
+	emulatedScalingFactor = emulated.Element[sw_bn254.ScalarField]{
+		Limbs: []frontend.Variable{7817090900423792488, 8405395627841593623, 3205086078052995447, 1013295966202553675},
+	}
+)
 
 func FromRTEtoTE(api frontend.API, x, y frontend.Variable) (frontend.Variable, frontend.Variable) {
 	// compute negF = -f mod p

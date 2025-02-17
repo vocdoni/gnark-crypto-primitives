@@ -2,7 +2,6 @@ package mimc7
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"testing"
 	"time"
@@ -10,8 +9,6 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	"github.com/iden3/go-iden3-crypto/mimc7"
@@ -122,19 +119,4 @@ func TestMaxAndLimitInputsMiMC(t *testing.T) {
 			Preimages: limitEmulatedInputs,
 		}, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 	})
-}
-
-func printConstrains(placeholder frontend.Circuit) error {
-	// compile circuit
-	p := profile.Start()
-	now := time.Now()
-	_, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, placeholder)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	fmt.Println("compilation tooks", time.Since(now))
-	p.Stop()
-	fmt.Println("constrains", p.NbConstraints())
-	return nil
 }

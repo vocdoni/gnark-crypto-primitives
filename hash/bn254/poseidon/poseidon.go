@@ -91,7 +91,7 @@ func NewPoseidon(api frontend.API) Poseidon {
 	}
 }
 
-// Write adds the provided inputs to the Poseidon object. If the number of 
+// Write adds the provided inputs to the Poseidon object. If the number of
 // inputs is greater than 16, it will return an error.
 func (h *Poseidon) Write(data ...frontend.Variable) error {
 	if len(h.data)+len(data) > 16 {

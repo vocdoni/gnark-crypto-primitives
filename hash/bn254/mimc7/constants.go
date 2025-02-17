@@ -8,15 +8,9 @@ import (
 
 const nRounds = 91
 
-var (
-	q         frontend.Variable
-	constants []frontend.Variable
-)
+var constants []frontend.Variable
 
 func init() {
-	biQ, _ := new(big.Int).SetString("21888242871839275222246405745257275088548364400416034343698204186575808495617", 10)
-	q = frontend.Variable(biQ)
-
 	constants = make([]frontend.Variable, nRounds)
 	constants[0] = frontend.Variable(0)
 	for i := 1; i < nRounds; i++ {
