@@ -30,37 +30,49 @@ func isValid(api frontend.API, sibling, prevSibling, leaf, prevLeaf frontend.Var
 	return api.Select(api.Or(cmp1, cmp2), 1, 0)
 }
 
-// CheckInclusionProof receives the parameters of an inclusion proof of Arbo to
-// recalculate the root with them and compare it with the provided one,
-// verifiying the proof.
+// Legacy version of CheckInclusionProof that uses CheckInclusionProofFlag.
+// It asserts that the flag equals 1, indicating a valid inclusion proof.
 func CheckInclusionProof(api frontend.API, hFn utils.Hasher, key, value, root frontend.Variable,
 	siblings []frontend.Variable,
 ) error {
-	// calculate the path from the provided key to decide which leaf is the
-	// correct one in every level of the tree
+	flag := CheckInclusionProofFlag(api, hFn, key, value, root, siblings)
+	api.AssertIsEqual(flag, 1)
+	return nil
+}
+
+// CheckInclusionProofFlag receives the parameters of an inclusion proof of Arbo
+// and returns a flag that is 1 if the recalculated root equals the provided root,
+// and 0 otherwise.
+func CheckInclusionProofFlag(api frontend.API, hFn utils.Hasher, key, value, root frontend.Variable,
+	siblings []frontend.Variable,
+) frontend.Variable {
+	// calculate the path from the provided key to decide which leaf is the correct one
+	// in every level of the tree
 	path := api.ToBinary(key, len(siblings))
-	// calculate the current leaf key to start with it to rebuild the tree
-	//   leafKey = H(key | value | 1)
+	// calculate the starting leaf key: leafKey = H(key | value | 1)
 	leafKey, err := hFn(api, key, value, 1)
 	if err != nil {
-		return err
+		// In-circuit error handling: signal failure by returning 0.
+		api.Println("failed to compute initial leaf key: " + err.Error())
+		return 0
 	}
-	// calculate the root iterating through the siblings in inverse order,
-	// calculating the intermediate leaf key based on the path and the validity
-	// of the current sibling
-	prevKey := leafKey                  // init prevKey with computed leafKey
-	prevSibling := frontend.Variable(0) // init prevSibling with 0
+	// Initialize previous values.
+	prevKey := leafKey                  // the previously computed leaf key
+	prevSibling := frontend.Variable(0) // initial sibling is 0
+	// Iterate over the siblings (in reverse order) to rebuild the Merkle root.
 	for i := len(siblings) - 1; i >= 0; i-- {
-		// check if the sibling is valid
+		// Determine if the current sibling is valid by comparing leaf keys.
 		valid := isValid(api, siblings[i], prevSibling, leafKey, prevKey)
-		prevKey = leafKey         // update prevKey to the lastKey
-		prevSibling = siblings[i] // update prevSibling to the current sibling
-		// compute the intermediate leaf key and update the lastKey
+		// Update previous values.
+		prevKey = leafKey
+		prevSibling = siblings[i]
+		// Compute the intermediate leaf key using the current path bit and validity.
 		leafKey, err = intermediateLeafKey(api, hFn, path[i], valid, leafKey, siblings[i])
 		if err != nil {
-			return err
+			api.Println("failed to compute intermediate leaf key: " + err.Error())
+			return 0
 		}
 	}
-	api.AssertIsEqual(leafKey, root)
-	return nil
+	// Return a flag: 1 if the recomputed leafKey equals the provided root, 0 otherwise.
+	return api.IsZero(api.Sub(leafKey, root))
 }
