@@ -60,8 +60,15 @@ func (h *MiMC) Sum() frontend.Variable {
 // AssertSumIsEqual asserts that the hash of the data is equal to the expected
 // hash.
 func (h *MiMC) AssertSumIsEqual(expected frontend.Variable) {
+	flag := h.AssertSumIsEqualFlag(expected)
+	h.api.AssertIsEqual(flag, 1)
+}
+
+// AssertSumIsEqualFlag returns a flag that is 1 if the hash of the data is
+// equal to the expected hash and 0 otherwise.
+func (h *MiMC) AssertSumIsEqualFlag(expected frontend.Variable) frontend.Variable {
 	res := h.Sum()
-	h.api.AssertIsEqual(res, expected)
+	return h.api.IsZero(h.api.Sub(res, expected))
 }
 
 func (h *MiMC) pow7(x frontend.Variable) frontend.Variable {

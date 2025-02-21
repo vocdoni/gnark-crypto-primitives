@@ -13,10 +13,11 @@ import (
 const maxInputs = 62
 
 type MiMC struct {
+	api    frontend.API
+	field  *emulated.Field[sw_bn254.ScalarField]
 	params []emulated.Element[sw_bn254.ScalarField] // slice containing constants for the encryption rounds
 	h      emulated.Element[sw_bn254.ScalarField]   // current vector in the Miyaguchi–Preneel scheme
 	data   []emulated.Element[sw_bn254.ScalarField] // state storage. data is updated when Write() is called. Sum sums the data.
-	field  *emulated.Field[sw_bn254.ScalarField]
 }
 
 // NewMiMC function returns a initialized MiMC hash function into the BabyJubJub
@@ -27,9 +28,10 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 		return MiMC{}, err
 	}
 	return MiMC{
+		api:    api,
+		field:  field,
 		params: constants,
 		h:      emulated.ValueOf[sw_bn254.ScalarField](nil),
-		field:  field,
 	}, nil
 }
 
@@ -63,8 +65,15 @@ func (h *MiMC) Sum() emulated.Element[sw_bn254.ScalarField] {
 // AssertSumIsEqual asserts that the hash of the data is equal to the expected
 // hash.
 func (h *MiMC) AssertSumIsEqual(expected emulated.Element[sw_bn254.ScalarField]) {
+	flag := h.AssertSumIsEqualFlag(expected)
+	h.api.AssertIsEqual(flag, 1)
+}
+
+// AssertSumIsEqualFlag returns a flag that is 1 if the hash of the data is
+// equal to the expected hash and 0 otherwise.
+func (h *MiMC) AssertSumIsEqualFlag(expected emulated.Element[sw_bn254.ScalarField]) frontend.Variable {
 	res := h.Sum()
-	h.field.AssertIsEqual(&res, &expected)
+	return h.field.IsZero(h.field.Sub(&res, &expected))
 }
 
 func (h *MiMC) pow7(x emulated.Element[sw_bn254.ScalarField]) emulated.Element[sw_bn254.ScalarField] {
