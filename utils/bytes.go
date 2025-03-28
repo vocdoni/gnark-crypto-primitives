@@ -35,6 +35,15 @@ func (b Bytes) ToVar(api frontend.API) (frontend.Variable, error) {
 	return U8ToVar(api, b)
 }
 
+// Values returns the values of the byte slice as a slice of frontend.Variable.
+func (b Bytes) Values() []frontend.Variable {
+	values := make([]frontend.Variable, len(b))
+	for i, u8 := range b {
+		values[i] = u8.Val
+	}
+	return values
+}
+
 // BytesFromElement converts an emulated element to a byte slice using the
 // ElemToU8 function.
 func BytesFromElement[T emulated.FieldParams](api frontend.API, e emulated.Element[T]) (Bytes, error) {

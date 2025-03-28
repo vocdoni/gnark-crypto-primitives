@@ -73,13 +73,13 @@ func SwapEndianness(u8 []uints.U8) []uints.U8 {
 // representing a limb of nbBits. The variable is first converted to a binary
 // representation, then the bits are grouped into limbs of nbBits until all
 // limbs are filled or all bits are used.
-func varToLimbsOfBits(api frontend.API, v frontend.Variable, nLimbs, nBits int) []frontend.Variable {
+func varToLimbsOfBits(api frontend.API, v frontend.Variable, nLimbs, nbBits int) []frontend.Variable {
 	limbs := make([]frontend.Variable, nLimbs)
 	// get binary representation of the variable
-	vBin := bits.ToBinary(api, v, bits.WithNbDigits(nBits*nLimbs))
+	vBin := bits.ToBinary(api, v, bits.WithNbDigits(nbBits*nLimbs))
 	// group bits into limbs of nbBits until fill all limbs or all bits
 	for i := range nLimbs {
-		g := vBin[i*nBits : (i+1)*nBits]
+		g := vBin[i*nbBits : (i+1)*nbBits]
 		limbs[i] = bits.FromBinary(api, g)
 	}
 	return limbs
