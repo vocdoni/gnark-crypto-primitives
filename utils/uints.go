@@ -39,6 +39,58 @@ func U8ToVar(api frontend.API, u8 []uints.U8) (frontend.Variable, error) {
 	return res, nil
 }
 
+// U8ToElem converts a slice of uint8 to a field element. It's the inverse
+// operation of ElemToU8, reconstructing an emulated field element from a byte slice.
+func U8ToElem[T emulated.FieldParams](api frontend.API, u8s []uints.U8) (emulated.Element[T], error) {
+	// Create new field for the element
+	field, err := emulated.NewField[T](api)
+	if err != nil {
+		return emulated.Element[T]{}, err
+	}
+
+	// Get field parameters
+	var fr T
+	nbLimbs := int(fr.NbLimbs())
+	bytesPerLimb := 8 // Each U64 limb is 8 bytes
+
+	// Ensure we have enough bytes, padding if necessary
+	totalBytes := nbLimbs * bytesPerLimb
+	if len(u8s) < totalBytes {
+		paddedU8s := make([]uints.U8, totalBytes)
+		copy(paddedU8s, u8s)
+		u8s = paddedU8s
+	} else if len(u8s) > totalBytes {
+		u8s = u8s[:totalBytes]
+	}
+
+	// Create limbs for the element
+	limbs := make([]frontend.Variable, nbLimbs)
+
+	// Process each limb
+	for i := range nbLimbs {
+		offset := i * bytesPerLimb
+
+		// For each byte in the limb
+		value := frontend.Variable(0)
+		for j := 0; j < bytesPerLimb; j++ {
+			// Get the multiplier for this byte position (256^position)
+			multiplier := frontend.Variable(1)
+			for k := 0; k < j; k++ {
+				multiplier = api.Mul(multiplier, 256)
+			}
+
+			// Add this byte's contribution to the limb value
+			contribution := api.Mul(u8s[offset+j].Val, multiplier)
+			value = api.Add(value, contribution)
+		}
+
+		limbs[i] = value
+	}
+
+	// Create and return the element with the constructed limbs
+	return *field.NewElement(limbs), nil
+}
+
 // VarToU8 converts a variable to a slice of uint8. First, the variable is
 // converted to a slice of uint64, then each uint64 is converted to a slice
 // of uint8 and concatenated. Finally, the endianness is swapped to match the
