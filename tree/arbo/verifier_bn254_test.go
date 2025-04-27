@@ -14,10 +14,27 @@ import (
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
-	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
 	"github.com/vocdoni/gnark-crypto-primitives/testutil"
+	"github.com/vocdoni/gnark-crypto-primitives/utils"
 	"go.vocdoni.io/dvote/util"
 )
+
+type testPoseidon2HashVerifier struct {
+	Input1   frontend.Variable
+	Input2   frontend.Variable
+	Expected frontend.Variable
+}
+
+func (circuit *testPoseidon2HashVerifier) Define(api frontend.API) error {
+	// calculate hash using Poseidon2Hasher
+	computed, err := utils.Poseidon2Hasher(api, circuit.Input1, circuit.Input2)
+	if err != nil {
+		return err
+	}
+	// verify the computed hash matches the expected hash
+	api.AssertIsEqual(computed, circuit.Expected)
+	return nil
+}
 
 type testVerifierBN254 struct {
 	Root     frontend.Variable
@@ -27,8 +44,40 @@ type testVerifierBN254 struct {
 }
 
 func (circuit *testVerifierBN254) Define(api frontend.API) error {
-	// use poseidon hash function
-	return CheckInclusionProof(api, poseidon.Hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	// use poseidon2 hash function
+	return CheckInclusionProof(api, utils.Poseidon2Hasher, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+}
+
+func TestPoseidon2HashVerifier(t *testing.T) {
+	c := qt.New(t)
+
+	// profile the circuit compilation
+	p := profile.Start()
+	now := time.Now()
+	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testPoseidon2HashVerifier{})
+	fmt.Println("elapsed", time.Since(now))
+	p.Stop()
+	fmt.Println("constraints", p.NbConstraints())
+
+	// generate inputs and compute expected hash
+	input1 := big.NewInt(42)
+	input2 := big.NewInt(123)
+
+	// compute the hash using the same function but outside of the circuit
+	hasher := arbotree.HashFunctionPoseidon2
+	expectedHash, err := hasher.Hash(input1.Bytes(), input2.Bytes())
+	c.Assert(err, qt.IsNil)
+
+	// prepare inputs for the circuit
+	inputs := testPoseidon2HashVerifier{
+		Input1:   input1,
+		Input2:   input2,
+		Expected: new(big.Int).SetBytes(expectedHash),
+	}
+
+	// run the test
+	assert := test.NewAssert(t)
+	assert.SolvingSucceeded(&testPoseidon2HashVerifier{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
 
 func TestVerifierBN254(t *testing.T) {
@@ -46,7 +95,7 @@ func TestVerifierBN254(t *testing.T) {
 		ValidSiblings: v_siblings,
 		TotalSiblings: n_siblings,
 		KeyLen:        k_len,
-		Hash:          arbotree.HashFunctionPoseidon,
+		Hash:          arbotree.HashFunctionPoseidon2,
 		BaseField:     arbotree.BN254BaseField,
 	}, [][]byte{util.RandomBytes(k_len)}, [][]byte{big.NewInt(10).Bytes()})
 	c.Assert(err, qt.IsNil)
