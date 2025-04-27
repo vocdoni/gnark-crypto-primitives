@@ -1,6 +1,8 @@
 module github.com/vocdoni/gnark-crypto-primitives
 
-go 1.23.2
+go 1.24
+
+toolchain go1.24.2
 
 require (
 	github.com/consensys/gnark v0.12.1-0.20250417131611-fdeeb39f3a62
@@ -10,7 +12,7 @@ require (
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
 	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
-	github.com/vocdoni/arbo v0.0.0-20241216103934-e64315269b49
+	github.com/vocdoni/arbo v0.0.0-20250428090545-2b68f3f093d4
 	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241216104229-fa0b063e636c
 	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
 )

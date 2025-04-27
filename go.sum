@@ -137,6 +137,16 @@ github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a h1:1ur3QoCqvE5f
 github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a/go.mod h1:RRCYJbIwD5jmqPI9XoAFR0OcDxqUctll6zUj/+B4S48=
 github.com/vocdoni/arbo v0.0.0-20241216103934-e64315269b49 h1:GMyepEuxLflqhdDHts/eUMtVkbrCI5mJc8RVdlwZBoA=
 github.com/vocdoni/arbo v0.0.0-20241216103934-e64315269b49/go.mod h1:wXxPP+5vkT5t54lrKz6bCXKIyv8aRplKq8uCFb2wgy4=
+github.com/vocdoni/arbo v0.0.0-20250427215111-068de9a04227 h1:FbCAN7jf4Nnt9u2JAQX2nQW/EEYPd98iPiwF6z9rLpI=
+github.com/vocdoni/arbo v0.0.0-20250427215111-068de9a04227/go.mod h1:SHdatjsIiJQjEHeWcRKhdS/39/axKCpZDLaROIg+wbI=
+github.com/vocdoni/arbo v0.0.0-20250428081418-1aaee06114dc h1:M7+D2uUMNA5nXi+bNhvc/MsvuE0Eum9i2vKFxe8IIl8=
+github.com/vocdoni/arbo v0.0.0-20250428081418-1aaee06114dc/go.mod h1:SHdatjsIiJQjEHeWcRKhdS/39/axKCpZDLaROIg+wbI=
+github.com/vocdoni/arbo v0.0.0-20250428081712-988710be0733 h1:eJ5ElefxuUzavv6nje5o95qzZIDAyPF2D0U8Ty8M9UM=
+github.com/vocdoni/arbo v0.0.0-20250428081712-988710be0733/go.mod h1:SHdatjsIiJQjEHeWcRKhdS/39/axKCpZDLaROIg+wbI=
+github.com/vocdoni/arbo v0.0.0-20250428081920-25e7f502fee4 h1:ORCeYGdyiYwKx7grLNdLhIbxF/NmnnvZ89hpnJo3fAc=
+github.com/vocdoni/arbo v0.0.0-20250428081920-25e7f502fee4/go.mod h1:SHdatjsIiJQjEHeWcRKhdS/39/axKCpZDLaROIg+wbI=
+github.com/vocdoni/arbo v0.0.0-20250428090545-2b68f3f093d4 h1:OQHjjhqleosBgCpwm23EzzqEiKuxIdDOGpbh9rygFIY=
+github.com/vocdoni/arbo v0.0.0-20250428090545-2b68f3f093d4/go.mod h1:SHdatjsIiJQjEHeWcRKhdS/39/axKCpZDLaROIg+wbI=
 github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241216104229-fa0b063e636c h1:0KJ3ufAYWGpdXgdlnLjFblW98MK+KfdYUiXzKPtk9PA=
 github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20241216104229-fa0b063e636c/go.mod h1:mFXFbumAbxySlviwrGiclFPRiSDIs4WzXnQQqPyNX9k=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
