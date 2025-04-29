@@ -16,6 +16,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"github.com/vocdoni/gnark-crypto-primitives/testutil"
+	"github.com/vocdoni/gnark-crypto-primitives/tree/smt"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -42,7 +43,8 @@ func (circuit *testVerifierBLS12377) Define(api frontend.API) error {
 		h.Write(data...)
 		return h.Sum(), nil
 	}
-	return CheckInclusionProof(api, hash, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	smt.InclusionVerifier(api, hash, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	return nil
 }
 
 func TestVerifierBLS12377(t *testing.T) {
