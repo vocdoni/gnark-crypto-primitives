@@ -159,3 +159,80 @@ func TestPoseidon2Compatibility(t *testing.T) {
 		})
 	}
 }
+
+// ────────────────────────────────────────────────────────────────────────────────
+//  Poseidon2 ordering & cross-compatibility
+// ────────────────────────────────────────────────────────────────────────────────
+
+type testPoseidon2NodeCircuit struct {
+	Left     frontend.Variable
+	Right    frontend.Variable
+	Expected frontend.Variable
+}
+
+func (circuit *testPoseidon2NodeCircuit) Define(api frontend.API) error {
+	h, err := utils.Poseidon2Hasher(api, circuit.Left, circuit.Right) // len = 2
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(h, circuit.Expected)
+	return nil
+}
+
+// TestPoseidon2NodeOrdering checks that H(a,b)==H(b,a) for NODE hashes
+// and that the circuit matches Go for both orders.
+func TestPoseidon2NodeOrdering(t *testing.T) {
+	c := qt.New(t)
+	hasher := arbotree.HashFunctionPoseidon2
+
+	a := big.NewInt(123456)
+	b := big.NewInt(789012)
+
+	// --- Go side ------------------------------------------------------
+	aBytes := hasher.SafeBigInt(a)
+	bBytes := hasher.SafeBigInt(b)
+
+	ab, err := hasher.Hash(aBytes, bBytes) // H(a,b)
+	c.Assert(err, qt.IsNil)
+
+	ba, err := hasher.Hash(bBytes, aBytes) // H(b,a)
+	c.Assert(err, qt.IsNil)
+
+	c.Assert(ab, qt.DeepEquals, ba, qt.Commentf("H(a,b) must equal H(b,a) for nodes"))
+
+	// --- gnark side ---------------------------------------------------
+	expected := new(big.Int).SetBytes(ab)
+
+	inputAB := testPoseidon2NodeCircuit{Left: a, Right: b, Expected: expected}
+	inputBA := testPoseidon2NodeCircuit{Left: b, Right: a, Expected: expected}
+
+	assert := test.NewAssert(t)
+	assert.SolvingSucceeded(&testPoseidon2NodeCircuit{}, &inputAB,
+		test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+	assert.SolvingSucceeded(&testPoseidon2NodeCircuit{}, &inputBA,
+		test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+}
+
+// TestPoseidon2LeafOrdering ensures leaf hashes KEEP their order:
+// H(k,v,1)  !=  H(v,k,1).
+func TestPoseidon2LeafOrdering(t *testing.T) {
+	c := qt.New(t)
+	h := arbotree.HashFunctionPoseidon2
+
+	key := big.NewInt(111)
+	value := big.NewInt(222)
+	flag := big.NewInt(1)
+
+	kB := h.SafeBigInt(key)
+	vB := h.SafeBigInt(value)
+	fB := h.SafeBigInt(flag)
+
+	kv, err := h.Hash(kB, vB, fB) // H(key,value,1)
+	c.Assert(err, qt.IsNil)
+
+	vk, err := h.Hash(vB, kB, fB) // H(value,key,1)
+	c.Assert(err, qt.IsNil)
+
+	c.Assert(kv, qt.Not(qt.DeepEquals), vk,
+		qt.Commentf("leaf hash must be order-sensitive"))
+}

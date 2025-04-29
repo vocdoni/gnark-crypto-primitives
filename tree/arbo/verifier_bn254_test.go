@@ -15,6 +15,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
 	"github.com/vocdoni/gnark-crypto-primitives/testutil"
+	"github.com/vocdoni/gnark-crypto-primitives/tree/smt"
 	"github.com/vocdoni/gnark-crypto-primitives/utils"
 	"go.vocdoni.io/dvote/util"
 )
@@ -45,7 +46,10 @@ type testVerifierBN254 struct {
 
 func (circuit *testVerifierBN254) Define(api frontend.API) error {
 	// use poseidon2 hash function
-	return CheckInclusionProof(api, utils.Poseidon2Hasher, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	//valid := CheckInclusionProofFlag(api, utils.Poseidon2Hasher, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
+	//api.AssertIsEqual(valid, 1)
+	smt.InclusionVerifier(api, utils.Poseidon2Hasher, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	return nil
 }
 
 func TestPoseidon2HashVerifier(t *testing.T) {
@@ -90,7 +94,7 @@ func TestVerifierBN254(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	testCensus, err := testutil.GenerateCensusProofForTest(testutil.CensusTestConfig{
+	testCensus, err := testutil.GenerateCensusProofForTest2(testutil.CensusTestConfig{
 		Dir:           t.TempDir() + "/bn254",
 		ValidSiblings: v_siblings,
 		TotalSiblings: n_siblings,

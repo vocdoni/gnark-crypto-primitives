@@ -1,10 +1,9 @@
 package utils
 
 import (
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
-	poseidon2bn254 "github.com/consensys/gnark-crypto/ecc/bn254/fr/poseidon2"
+	"fmt"
+
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/hash"
 	"github.com/consensys/gnark/std/hash/mimc"
 	"github.com/consensys/gnark/std/permutation/poseidon2"
 )
@@ -23,58 +22,49 @@ func MiMCHasher(api frontend.API, data ...frontend.Variable) (frontend.Variable,
 	return h.Sum(), nil
 }
 
-// Poseidon2Hasher is a hash function that hashes the data provided using the
-// poseidon2 hash function and the current compiler field.
-func poseidon2Hasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
-	params := poseidon2bn254.GetDefaultParameters()
-	f, err := poseidon2.NewPoseidon2FromParameters(
-		api,
-		params.Width,
-		params.NbFullRounds,
-		params.NbPartialRounds,
-	)
+// Poseidon2Hasher hashes either an internal-node (2 inputs, tag 0)
+// or a leaf      (3 inputs, tag 1) and returns lane 0.
+//
+// It is bit-for-bit compatible with the Go implementation that calls
+//
+//	SpongeAbsorb( t=3, rF=8, rP=56 ).
+func Poseidon2Hasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
+	if len(data) != 2 && len(data) != 3 {
+		return 0, fmt.Errorf("Poseidon2: expected 2 or 3 inputs, got %d", len(data))
+	}
+
+	// ─────── canonical ordering for the 2-input case ───────
+	if len(data) == 2 {
+		// cmp = 1  if data[0] > data[1]
+		cmp := api.Cmp(data[0], data[1])     // −1 , 0 , +1
+		isGT := api.IsZero(api.Add(cmp, -1)) // 1 iff cmp == +1
+		// swap when data[0] > data[1]
+		left := api.Select(isGT, data[1], data[0])  // min
+		right := api.Select(isGT, data[0], data[1]) // max
+		data = []frontend.Variable{left, right}
+	}
+
+	tag := 0
+	if len(data) == 3 {
+		tag = 1
+	}
+
+	perm, err := poseidon2.NewPoseidon2FromParameters(api, 3, 8, 56)
 	if err != nil {
 		return 0, err
 	}
-	h := hash.NewMerkleDamgardHasher(api, f, make([]byte, fr.Bytes))
-	h.Write(data...)
-	return h.Sum(), nil
-}
 
-// NormalizedPoseidon2Hasher is a wrapper around Poseidon2Hasher that ensures
-// inputs are deterministically ordered. This eliminates hash output differences
-// caused by input ordering variations between different path calculation methods.
-//
-// When used with exactly 2 inputs, it sorts them deterministically:
-// - Input ordering doesn't affect the hash output: hash(a,b) == hash(b,a)
-// - For other input counts, it passes through to standard Poseidon2Hasher
-//
-// This is especially useful for Merkle tree operations where path bit calculation
-// differences between implementations could lead to different hash orderings.
-func Poseidon2Hasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
-	// For Merkle intermediate nodes, we expect exactly 2 inputs
-	// (left child and right child)
+	state := []frontend.Variable{data[0], data[1], tag}
+	if err := perm.Permutation(state); err != nil {
+		return 0, err
+	}
 	if len(data) == 2 {
-		// Normalize the order of inputs by comparing them and sorting
-		// api.Cmp returns -1, 0, or 1, but api.Select expects 0 or 1
-		// We need to convert the three-way comparison to a binary condition
-		cmpResult := api.Cmp(data[0], data[1])
-
-		// Create a binary condition: 1 when data[0] < data[1], 0 otherwise
-		// When data[0] < data[1], cmpResult is -1, so api.Add(cmpResult, 1) is 0
-		// and api.IsZero returns 1
-		isLessThan := api.IsZero(api.Add(cmpResult, 1))
-
-		// Select the smaller value as the first input, larger as the second
-		// This ensures hash(a,b) == hash(b,a)
-		first := api.Select(isLessThan, data[0], data[1])
-		second := api.Select(isLessThan, data[1], data[0])
-
-		// Call the standard Poseidon2 with normalized inputs
-		return poseidon2Hasher(api, first, second)
+		return state[0], nil
 	}
 
-	// For other cases (single input or more than 2 inputs),
-	// pass through to the standard Poseidon2 hasher
-	return poseidon2Hasher(api, data...)
+	state[0] = data[2] // absorb flag
+	if err := perm.Permutation(state); err != nil {
+		return 0, err
+	}
+	return state[0], nil
 }

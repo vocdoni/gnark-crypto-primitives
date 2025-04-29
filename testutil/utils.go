@@ -53,6 +53,103 @@ type TestSignature struct {
 	Address *big.Int
 }
 
+// GenerateCensusProofForTest generates a census proof for testing purposes.
+func GenerateCensusProofForTest2(conf CensusTestConfig,
+	ks, vs [][]byte) (*TestCensus, error) {
+
+	// clean-up temp db folder afterwards
+	defer func() { _ = os.RemoveAll(conf.Dir) }()
+
+	dbase, err := pebbledb.New(db.Options{Path: conf.Dir})
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := arbotree.NewTree(arbotree.Config{
+		Database:     dbase,
+		MaxLevels:    conf.TotalSiblings,
+		HashFunction: conf.Hash,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// ------------------------------------------------------------------------
+	// 1. insert the user-supplied (key,value) pairs
+	//    – keys are first reduced mod F and stored big-endian
+	// ------------------------------------------------------------------------
+	for i, k := range ks {
+		ks[i] = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes()
+		if err = tree.Add(ks[i], vs[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	// 2. add extra random leaves so we have non-trivial siblings
+	for i := 1; i < conf.ValidSiblings; i++ {
+		rk := arbotree.BigToFF(conf.BaseField,
+			new(big.Int).SetBytes(util.RandomBytes(conf.KeyLen))).Bytes()
+		rv := new(big.Int).SetBytes(util.RandomBytes(8)).Bytes()
+		if err = tree.Add(rk, rv); err != nil {
+			return nil, err
+		}
+	}
+
+	// ------------------------------------------------------------------------
+	// 3. root & proofs
+	// ------------------------------------------------------------------------
+	rootBE, err := tree.Root() // 32-byte big-endian
+	if err != nil {
+		return nil, err
+	}
+
+	var proofs []*TestCensusProofs
+	for i, kBE := range ks {
+
+		_, _, sibPacked, exist, err := tree.GenProof(kBE)
+		if err != nil {
+			return nil, err
+		}
+		if !exist {
+			return nil, fmt.Errorf("key not found in tree")
+		}
+
+		// unpack siblings – each is the *canonical big-endian* hash output
+		unpacked, err := arbo.UnpackSiblings(tree.HashFunction(), sibPacked)
+		if err != nil {
+			return nil, err
+		}
+
+		// pad to fixed length
+		padded := make([]*big.Int, conf.TotalSiblings)
+		for j := range padded {
+			if j < len(unpacked) {
+				// ───── KEEP BIG-ENDIAN ─────
+				padded[j] = new(big.Int).SetBytes(unpacked[j])
+			} else {
+				padded[j] = big.NewInt(0)
+			}
+		}
+
+		// off-chain sanity check (arbotree implementation)
+		if ok, _ := arbotree.CheckProof(tree.HashFunction(),
+			kBE, vs[i], rootBE, sibPacked); !ok {
+			return nil, fmt.Errorf("arbotree proof verification failed")
+		}
+
+		proofs = append(proofs, &TestCensusProofs{
+			Key:      new(big.Int).SetBytes(kBE),   // big-endian
+			Value:    new(big.Int).SetBytes(vs[i]), // arbitrary
+			Siblings: padded,
+		})
+	}
+
+	return &TestCensus{
+		Root:   new(big.Int).SetBytes(rootBE), // big-endian
+		Proofs: proofs,
+	}, nil
+}
+
 // GenerateCensusProofForTest generates a census proof for testing purposes, it
 // receives a configuration and a key-value pair to generate the proof for.
 // It returns the root, key, value, and siblings of the proof. The configuration
