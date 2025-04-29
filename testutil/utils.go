@@ -98,7 +98,6 @@ func generateCensusProof(
 	ks, vs [][]byte,
 	byte2Int func([]byte) *big.Int, // ← BE or LE conversion
 ) (*TestCensus, error) {
-
 	// remove temp-dir afterwards
 	defer func() { _ = os.RemoveAll(conf.Dir) }()
 
@@ -191,7 +190,6 @@ func generateCensusProof(
 func GenerateCensusProofBE(
 	conf CensusTestConfig, ks, vs [][]byte,
 ) (*TestCensus, error) {
-
 	return generateCensusProof(
 		conf, ks, vs,
 		func(b []byte) *big.Int { return new(big.Int).SetBytes(b) }, // BE
@@ -203,7 +201,6 @@ func GenerateCensusProofBE(
 func GenerateCensusProofLE(
 	conf CensusTestConfig, ks, vs [][]byte,
 ) (*TestCensus, error) {
-
 	return generateCensusProof(
 		conf, ks, vs,
 		arbo.BytesLEToBigInt, // LE

@@ -41,21 +41,18 @@ type testVerifierBN254 struct {
 	Root     frontend.Variable
 	Key      frontend.Variable
 	Value    frontend.Variable
-	Siblings [160]frontend.Variable
+	Siblings [n_siblings]frontend.Variable
 }
 
 func (circuit *testVerifierBN254) Define(api frontend.API) error {
-	// use poseidon2 hash function
-	//valid := CheckInclusionProofFlag(api, utils.Poseidon2Hasher, circuit.Key, circuit.Value, circuit.Root, circuit.Siblings[:])
-	//api.AssertIsEqual(valid, 1)
-	smt.InclusionVerifier(api, utils.Poseidon2Hasher, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	smt.InclusionVerifier(api, utils.PoseidonHasher, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
 	return nil
 }
 
 func TestPoseidon2HashVerifier(t *testing.T) {
 	c := qt.New(t)
 
-	// profile the circuit compilation
+	// profile the circuit compilationd
 	p := profile.Start()
 	now := time.Now()
 	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testPoseidon2HashVerifier{})
@@ -94,12 +91,12 @@ func TestVerifierBN254(t *testing.T) {
 	p.Stop()
 	fmt.Println("constrains", p.NbConstraints())
 	// generate census proof
-	testCensus, err := testutil.GenerateCensusProofBE(testutil.CensusTestConfig{
+	testCensus, err := testutil.GenerateCensusProofLE(testutil.CensusTestConfig{
 		Dir:           t.TempDir() + "/bn254",
 		ValidSiblings: v_siblings,
 		TotalSiblings: n_siblings,
 		KeyLen:        k_len,
-		Hash:          arbotree.HashFunctionPoseidon2,
+		Hash:          arbotree.HashFunctionPoseidon,
 		BaseField:     arbotree.BN254BaseField,
 	}, [][]byte{util.RandomBytes(k_len)}, [][]byte{big.NewInt(10).Bytes()})
 	c.Assert(err, qt.IsNil)

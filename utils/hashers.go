@@ -5,6 +5,7 @@ import (
 	"github.com/consensys/gnark/std/hash/mimc"
 	"github.com/consensys/gnark/std/math/cmp"
 	"github.com/consensys/gnark/std/permutation/poseidon2"
+	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
 )
 
 type Hasher func(frontend.API, ...frontend.Variable) (frontend.Variable, error)
@@ -19,6 +20,11 @@ func MiMCHasher(api frontend.API, data ...frontend.Variable) (frontend.Variable,
 	}
 	h.Write(data...)
 	return h.Sum(), nil
+}
+
+// PoseidonHasher wraps the Poseidon hash function from the gnark library.
+func PoseidonHasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
+	return poseidon.Hash(api, data...)
 }
 
 // ----------------------------------------------------------------------------
