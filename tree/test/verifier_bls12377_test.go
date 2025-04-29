@@ -43,7 +43,8 @@ func (circuit *testVerifierBLS12377) Define(api frontend.API) error {
 		h.Write(data...)
 		return h.Sum(), nil
 	}
-	smt.InclusionVerifier(api, hash, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	valid := smt.InclusionVerifier(api, hash, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	api.AssertIsEqual(valid, 1)
 	return nil
 }
 
