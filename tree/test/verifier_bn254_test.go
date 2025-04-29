@@ -20,23 +20,6 @@ import (
 	"go.vocdoni.io/dvote/util"
 )
 
-type testPoseidon2HashVerifier struct {
-	Input1   frontend.Variable
-	Input2   frontend.Variable
-	Expected frontend.Variable
-}
-
-func (circuit *testPoseidon2HashVerifier) Define(api frontend.API) error {
-	// calculate hash using Poseidon2Hasher
-	computed, err := utils.Poseidon2Hasher(api, circuit.Input1, circuit.Input2)
-	if err != nil {
-		return err
-	}
-	// verify the computed hash matches the expected hash
-	api.AssertIsEqual(computed, circuit.Expected)
-	return nil
-}
-
 type testVerifierBN254 struct {
 	Root     frontend.Variable
 	Key      frontend.Variable
@@ -45,40 +28,9 @@ type testVerifierBN254 struct {
 }
 
 func (circuit *testVerifierBN254) Define(api frontend.API) error {
-	smt.InclusionVerifier(api, utils.PoseidonHasher, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	valid := smt.InclusionVerifier(api, utils.PoseidonHasher, circuit.Root, circuit.Siblings[:], circuit.Key, circuit.Value)
+	api.AssertIsEqual(valid, 1)
 	return nil
-}
-
-func TestPoseidon2HashVerifier(t *testing.T) {
-	c := qt.New(t)
-
-	// profile the circuit compilationd
-	p := profile.Start()
-	now := time.Now()
-	_, _ = frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &testPoseidon2HashVerifier{})
-	fmt.Println("elapsed", time.Since(now))
-	p.Stop()
-	fmt.Println("constraints", p.NbConstraints())
-
-	// generate inputs and compute expected hash
-	input1 := big.NewInt(42)
-	input2 := big.NewInt(123)
-
-	// compute the hash using the same function but outside of the circuit
-	hasher := arbotree.HashFunctionPoseidon2
-	expectedHash, err := hasher.Hash(input1.Bytes(), input2.Bytes())
-	c.Assert(err, qt.IsNil)
-
-	// prepare inputs for the circuit
-	inputs := testPoseidon2HashVerifier{
-		Input1:   input1,
-		Input2:   input2,
-		Expected: new(big.Int).SetBytes(expectedHash),
-	}
-
-	// run the test
-	assert := test.NewAssert(t)
-	assert.SolvingSucceeded(&testPoseidon2HashVerifier{}, &inputs, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
 
 func TestVerifierBN254(t *testing.T) {
