@@ -64,15 +64,6 @@ func TestPoseidon2EmptyKeyHandling(t *testing.T) {
 	// When empty bytes are passed to the hash function, they're handled specially
 	hashBytes, _ := hasher.Hash(keyBytes, valueBytes, flagBytes)
 	fmt.Printf("Hash with empty key bytes: %s\n", new(big.Int).SetBytes(hashBytes))
-
-	// In the circuit, the zero big.Int is simply used directly
-	// This results in a different hash value than the non-circuit implementation
-	fmt.Println("\nNotes on handling difference:")
-	fmt.Println("- In the circuit, an empty key (big.Int with value 0) is passed directly to the hash function")
-	fmt.Println("- In the non-circuit implementation, empty bytes get special handling via ExplicitZero()")
-	fmt.Println("- This results in different hash values for the same logical input")
-	fmt.Println("- When implementing protocols that use Poseidon2 hash, be aware of this discrepancy")
-	fmt.Println("- Prefer using non-zero keys or handle zero values with special care")
 }
 
 func TestPoseidon2Compatibility(t *testing.T) {

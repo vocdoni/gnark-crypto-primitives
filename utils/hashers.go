@@ -1,10 +1,9 @@
 package utils
 
 import (
-	"fmt"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/hash/mimc"
+	"github.com/consensys/gnark/std/math/cmp"
 	"github.com/consensys/gnark/std/permutation/poseidon2"
 )
 
@@ -22,49 +21,38 @@ func MiMCHasher(api frontend.API, data ...frontend.Variable) (frontend.Variable,
 	return h.Sum(), nil
 }
 
-// Poseidon2Hasher hashes either an internal-node (2 inputs, tag 0)
-// or a leaf      (3 inputs, tag 1) and returns lane 0.
-//
-// It is bit-for-bit compatible with the Go implementation that calls
-//
-//	SpongeAbsorb( t=3, rF=8, rP=56 ).
-func Poseidon2Hasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
-	if len(data) != 2 && len(data) != 3 {
-		return 0, fmt.Errorf("Poseidon2: expected 2 or 3 inputs, got %d", len(data))
-	}
+// ----------------------------------------------------------------------------
+//  Poseidon-2 Merkle–Damgård hasher (width-2)
+//  compatible with Arbo's HashPoseidon2 on the Go side
+// ----------------------------------------------------------------------------
 
-	// ─────── canonical ordering for the 2-input case ───────
+// Poseidon2Hasher hashes 2- or 3-element tuples:
+//   - 2 elements ⇒ internal node  ->  min‖max
+//   - 3 elements ⇒ leaf           ->  key‖value‖flag
+func Poseidon2Hasher(api frontend.API, data ...frontend.Variable) (frontend.Variable, error) {
+	// ---- order the two-input case (min‖max)
 	if len(data) == 2 {
-		// cmp = 1  if data[0] > data[1]
-		cmp := api.Cmp(data[0], data[1])     // −1 , 0 , +1
-		isGT := api.IsZero(api.Add(cmp, -1)) // 1 iff cmp == +1
-		// swap when data[0] > data[1]
-		left := api.Select(isGT, data[1], data[0])  // min
-		right := api.Select(isGT, data[0], data[1]) // max
+		// isGreater = 1  ⇔  data[0] > data[1]
+		isGreater := api.Sub(1, cmp.IsLessOrEqual(api, data[0], data[1]))
+		left := api.Select(isGreater, data[1], data[0])  // min
+		right := api.Select(isGreater, data[0], data[1]) // max
 		data = []frontend.Variable{left, right}
 	}
 
-	tag := 0
-	if len(data) == 3 {
-		tag = 1
-	}
-
-	perm, err := poseidon2.NewPoseidon2FromParameters(api, 3, 8, 56)
+	// ---- width-2 Poseidon2 permutation
+	perm, err := poseidon2.NewPoseidon2FromParameters(api, 2, 6, 50)
 	if err != nil {
 		return 0, err
 	}
 
-	state := []frontend.Variable{data[0], data[1], tag}
-	if err := perm.Permutation(state); err != nil {
-		return 0, err
+	// ---- Merkle–Damgård chaining
+	cv := frontend.Variable(0) // CV₀ = 0
+	for _, m := range data {
+		state := []frontend.Variable{cv, m} // [CVᵢ , mᵢ]
+		if err := perm.Permutation(state); err != nil {
+			return 0, err
+		}
+		cv = api.Add(state[1], m) // CVᵢ₊₁ = S₁ + mᵢ
 	}
-	if len(data) == 2 {
-		return state[0], nil
-	}
-
-	state[0] = data[2] // absorb flag
-	if err := perm.Permutation(state); err != nil {
-		return 0, err
-	}
-	return state[0], nil
+	return cv, nil
 }
