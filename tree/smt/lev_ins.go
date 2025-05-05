@@ -45,7 +45,6 @@ func LevInsFlag(
 	enabled frontend.Variable,
 	siblings []frontend.Variable,
 ) (valid frontend.Variable, levIns []frontend.Variable) {
-
 	n := len(siblings)
 	levIns = make([]frontend.Variable, n)
 	if n < 2 { // optional guard: single-level tree
