@@ -101,7 +101,7 @@ func generateCensusProof(
 	// remove temp-dir afterwards
 	defer func() { _ = os.RemoveAll(conf.Dir) }()
 
-	// --- open DB & tree -------------------------------------------------------
+	// open DB & tree
 	dbase, err := pebbledb.New(db.Options{Path: conf.Dir})
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func generateCensusProof(
 		return nil, err
 	}
 
-	// --- 1. insert the user-supplied pairs ------------------------------------
+	// insert the user-supplied pairs
 	for i, k := range ks {
 		ks[i] = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes() // canonical BE
 		if err = tree.Add(ks[i], vs[i]); err != nil {
@@ -123,7 +123,7 @@ func generateCensusProof(
 		}
 	}
 
-	// --- 2. add random leaves so that some siblings are non-zero --------------
+	// add random leaves so that some siblings are non-zero
 	for i := 1; i < conf.ValidSiblings; i++ {
 		rk := arbotree.BigToFF(conf.BaseField,
 			new(big.Int).SetBytes(util.RandomBytes(conf.KeyLen))).Bytes()
@@ -133,7 +133,7 @@ func generateCensusProof(
 		}
 	}
 
-	// --- 3. root & proofs ------------------------------------------------------
+	// root & proof
 	rootBE, err := tree.Root() // 32-byte big-endian
 	if err != nil {
 		return nil, err

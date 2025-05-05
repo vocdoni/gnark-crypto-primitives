@@ -5,11 +5,27 @@ import (
 	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
 
-// InclusionVerifier checks that (key,value) is *present* in the Sparse-Merkle-
-// Tree whose root is `root`.
-// It returns 1 when the proof is valid and 0 otherwise – no assertion
-// is fired, so the caller may chain several checks and assert at the end if
-// they wish.
+/*
+InclusionVerifier returns 1 ( valid ) when the pair (key,value) is
+contained in the sparse-Merkle tree whose root commitment is root.
+
+Parameters
+  - api        – the gnark constraint system API
+  - hFn        – Poseidon-based hasher used by the tree
+  - root       – public root of the tree (big-endian field element)
+  - siblings   – path from root to leaf, packed root→leaf
+  - key, value – leaf that must be proven present
+
+Constraints evaluated inside the gadget
+ 1. A correct leaf commitment is recomputed with hFn.
+ 2. The path is walked bottom-up, mixing each sibling.
+ 3. The result must equal the supplied root (enforced through a flag).
+ 4. All sanity checks coming from the state machine (LevIns, VerifierSM)
+    must simultaneously hold.
+
+The caller receives a boolean flag and may decide when or whether to
+assert on it.
+*/
 func InclusionVerifier(
 	api frontend.API,
 	hFn utils.Hasher,
@@ -18,53 +34,84 @@ func InclusionVerifier(
 	key, value frontend.Variable,
 ) frontend.Variable {
 	return Verifier(
-		api, hFn, 1, root, siblings,
-		key, value, 0,
-		key, value, 0,
+		api, hFn,
+		1, // enabled
+		root, siblings,
+		key, value, 0, // old leaf (unused)
+		key, value, 0, // new leaf (same as old for inclusion)
 	)
 }
 
-// ExclusionVerifier proves that `key` is *absent* from the tree.
-// `oldKey‖oldValue` is the neighbour leaf that prevents the key from being
-// inserted (see the Iden3 SMT paper, §4.3).
-// `isOld0` ≙ 1 when the tree is empty on that branch.
-//
-// It returns 1 on a correct non-membership proof, 0 otherwise.
+/*
+ExclusionVerifier proves that key is **not** present in the tree.
+
+Parameters
+  - api              – gnark API
+  - hFn              – hash function of the tree
+  - root             – public root commitment
+  - siblings         – sibling list root→leaf
+  - oldKey, oldValue – neighbour leaf that blocks insertion of key
+  - isOld0           – 1 when oldKey/oldValue is the implicit zero-leaf
+  - key              – key claimed to be absent
+
+Checks performed
+ 1. The blocking neighbour is indeed on the path.
+ 2. The new key cannot reuse the neighbour’s key unless the branch is
+    empty (isOld0).
+ 3. The rebuilt root matches the public root.
+ 4. All LevIns / VerifierSM invariants hold.
+
+Returns 1 on a valid non-membership proof, 0 otherwise.
+*/
 func ExclusionVerifier(
 	api frontend.API,
 	hFn utils.Hasher,
 	root frontend.Variable,
 	siblings []frontend.Variable,
-	oldKey, oldValue, isOld0 frontend.Variable, // witness for the existing leaf
-	key frontend.Variable, // the key we claim is absent
+	oldKey, oldValue, isOld0 frontend.Variable,
+	key frontend.Variable,
 ) frontend.Variable {
 	return Verifier(
-		api, hFn, 1, root, siblings,
+		api, hFn,
+		1, // enabled
+		root, siblings,
 		oldKey, oldValue, isOld0,
-		key, 0, 1,
+		key, 0, 1, // fnc = 1 → exclusion
 	)
 }
 
-// Verifier is the common entry-point for both inclusion and exclusion proofs.
-//
-// * **enabled** – set to 0 to bypass all checks (flag will always be 1).
-// * **fnc**     – 0 ⇒ inclusion, 1 ⇒ exclusion (Iden3 notation).
-//
-// It delegates to the “leaf-hash” version after computing the
-// Poseidon-based leaf commitments (`Hash1`).
+/*
+Verifier is the common front-end for both membership (fnc = 0) and
+non-membership (fnc = 1) proofs.
+
+Parameters
+  - api, hFn           – as above
+  - enabled            – 0 skips every check and returns 1
+  - root               – public tree root
+  - siblings           – packed sibling list
+  - oldKey, oldValue   – leaf being deleted / updated
+  - isOld0             – 1 when old leaf is implicit-zero
+  - key, value         – leaf being inserted / checked
+  - fnc                – 0 = inclusion, 1 = exclusion
+
+High-level operation
+ 1. Compute Poseidon leaf hashes (Hash1).
+ 2. Delegate to VerifierWithLeafHashFlag to run all constraints.
+ 3. Bubble the resulting flag back to the caller.
+*/
 func Verifier(
 	api frontend.API,
 	hFn utils.Hasher,
-	enabled frontend.Variable, // 0 ⇒ proof disabled
-	root frontend.Variable, // public input
-	siblings []frontend.Variable, // packed top→bottom
+	enabled frontend.Variable,
+	root frontend.Variable,
+	siblings []frontend.Variable,
 	oldKey, oldValue, isOld0 frontend.Variable,
 	key, value frontend.Variable,
-	fnc frontend.Variable, // 0 = inc, 1 = exc
+	fnc frontend.Variable,
 ) frontend.Variable {
 
-	hash1Old := Hash1(api, hFn, oldKey, oldValue) // H(oldKey‖oldValue‖1)
-	hash1New := Hash1(api, hFn, key, value)       // H(key‖value‖1)
+	hash1Old := Hash1(api, hFn, oldKey, oldValue)
+	hash1New := Hash1(api, hFn, key, value)
 
 	return VerifierWithLeafHashFlag(
 		api, hFn,
@@ -74,8 +121,12 @@ func Verifier(
 	)
 }
 
-// VerifierWithLeafHash is a convenience wrapper around VerifierWithLeafHashFlag
-// that asserts the result to be 1 (valid).
+/*
+VerifierWithLeafHash is a thin wrapper that **asserts** the flag returned by
+VerifierWithLeafHashFlag.  Use it when a failing proof must abort the circuit.
+
+Parameters coincide with VerifierWithLeafHashFlag (see below).
+*/
 func VerifierWithLeafHash(
 	api frontend.API,
 	hFn utils.Hasher,
@@ -84,7 +135,7 @@ func VerifierWithLeafHash(
 	siblings []frontend.Variable,
 	oldKey, hash1Old, isOld0 frontend.Variable,
 	key, hash1New frontend.Variable,
-	fnc frontend.Variable, // 0 =inclusion, 1 =exclusion
+	fnc frontend.Variable,
 ) {
 	valid := VerifierWithLeafHashFlag(
 		api, hFn,
@@ -95,35 +146,54 @@ func VerifierWithLeafHash(
 	api.AssertIsEqual(valid, 1)
 }
 
-// VerifierWithLeafHashFlag rebuilds the root and returns 1 on success, 0 on failure.
+/*
+VerifierWithLeafHashFlag does the heavy lifting.  It rebuilds the root,
+executes the LevIns and VerifierSM state machines, prevents illegal key
+reuse in updates, and finally compares the computed root with the public
+root.  All individual checks are AND-ed and the function returns 1 when
+**every** condition holds, 0 otherwise.
+
+Parameters
+  - api, hFn         – gnark API and Poseidon hasher
+  - enabled          – 0 bypasses verification (flag = 1)
+  - root             – public root commitment
+  - siblings         – list of siblings from root to leaf
+  - oldKey, hash1Old – existing leaf (for updates / exclusions)
+  - isOld0           – 1 when old leaf is implicit zero
+  - key, hash1New    – leaf being inserted / checked
+  - fnc              – 0 inclusion, 1 exclusion
+
+Constraints combined in the returned flag
+ 1. Exactly one state (Top/Old/New/Zero) is active on the last level.
+ 2. LevIns determines the insertion level correctly.
+ 3. Key-reuse is forbidden when updating an existing leaf.
+ 4. The path-hash reconstructed bottom-up matches the public root.
+*/
 func VerifierWithLeafHashFlag(
 	api frontend.API,
 	hFn utils.Hasher,
-	enabled, // 1 → perform all checks, 0 → bypass (flag always 1)
+	enabled frontend.Variable,
 	root frontend.Variable,
 	siblings []frontend.Variable,
-	oldKey, hash1Old, // leaf being deleted / updated
-	isOld0, // 1 iff old leaf is the implicit-zero leaf
-	key, hash1New, // leaf being inserted
-	fnc frontend.Variable, // 0 inclusion, 1 exclusion
+	oldKey, hash1Old frontend.Variable,
+	isOld0 frontend.Variable,
+	key, hash1New frontend.Variable,
+	fnc frontend.Variable,
 ) frontend.Variable {
 
 	nLevels := len(siblings)
 
-	// -------------------------------------------------------------------------
-	// 1. per-level state machines (same logic as before)
-	// -------------------------------------------------------------------------
+	// level state machines
 	n2bNew := api.ToBinary(key, api.Compiler().FieldBitLen())
-	smtLevIns := LevIns(api, enabled, siblings)
+	flagLevIns, smtLevIns := LevInsFlag(api, enabled, siblings)
 
-	stTop, stI0, stIOld, stINew, stNa :=
-		make([]frontend.Variable, nLevels),
-		make([]frontend.Variable, nLevels),
-		make([]frontend.Variable, nLevels),
-		make([]frontend.Variable, nLevels),
-		make([]frontend.Variable, nLevels)
+	stTop := make([]frontend.Variable, nLevels)
+	stI0 := make([]frontend.Variable, nLevels)
+	stIOld := make([]frontend.Variable, nLevels)
+	stINew := make([]frontend.Variable, nLevels)
+	stNa := make([]frontend.Variable, nLevels)
 
-	for i := 0; i < nLevels; i++ {
+	for i := range nLevels {
 		if i == 0 {
 			stTop[i], stI0[i], stIOld[i], stINew[i], stNa[i] =
 				VerifierSM(api, isOld0, smtLevIns[i], fnc,
@@ -135,20 +205,16 @@ func VerifierWithLeafHashFlag(
 		}
 	}
 
-	// --- condition (1): exactly one state must be active on the last level ----
-	sumStates := api.Add(api.Add(api.Add(stNa[nLevels-1],
-		stIOld[nLevels-1]),
-		stINew[nLevels-1]),
-		stI0[nLevels-1])
-	flagStates := IsEqual(api, sumStates, 1) // 1 iff ok
+	sumStates := api.Add(api.Add(api.Add(
+		stNa[nLevels-1], stIOld[nLevels-1]),
+		stINew[nLevels-1]), stI0[nLevels-1])
+	flagStates := IsEqual(api, sumStates, 1)
 
-	// -------------------------------------------------------------------------
-	// 2. hash-path rebuilding (bottom-up)
-	// -------------------------------------------------------------------------
+	// hash path
 	levels := make([]frontend.Variable, nLevels)
 	for i := nLevels - 1; i >= 0; i-- {
 		next := frontend.Variable(0)
-		if i != nLevels-1 {
+		if i < nLevels-1 {
 			next = levels[i+1]
 		}
 		levels[i] = VerifierLevel(api, hFn,
@@ -157,26 +223,24 @@ func VerifierWithLeafHashFlag(
 			n2bNew[i], next)
 	}
 
-	// --- condition (2): “key reuse” must NOT happen for an update ------------
-	areKeyEq := IsEqual(api, oldKey, key)
+	// key-reuse guard
+	areKeysEqual := IsEqual(api, oldKey, key)
 	keyReuseOK := MultiAnd(api, []frontend.Variable{
-		fnc,                // exclusion ⇒ fnc==1 (no restriction)
-		api.Sub(1, isOld0), // update path only when old exists
-		areKeyEq,           // keys equal
+		fnc,                // fnc == 1 → exclusion
+		api.Sub(1, isOld0), // only relevant when old leaf exists
+		areKeysEqual,
 		enabled,
 	})
-	flagKeyReuse := IsEqual(api, keyReuseOK, 0) // 1 iff ok
+	flagKeyReuse := IsEqual(api, keyReuseOK, 0)
 
-	// --- condition (3): computed root matches the supplied root --------------
-	flagRoot := ForceEqualIfEnabledFlag(api,
-		levels[0], root, enabled)
+	// root comparision
+	flagRoot := ForceEqualIfEnabledFlag(api, levels[0], root, enabled)
 
-	// -------------------------------------------------------------------------
-	// 3. global flag  (AND of all individual checks)
-	// -------------------------------------------------------------------------
+	// combined flag
 	return MultiAnd(api, []frontend.Variable{
 		flagStates,
 		flagKeyReuse,
 		flagRoot,
+		flagLevIns,
 	})
 }
