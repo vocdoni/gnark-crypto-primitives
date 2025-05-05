@@ -109,7 +109,6 @@ func Verifier(
 	key, value frontend.Variable,
 	fnc frontend.Variable,
 ) frontend.Variable {
-
 	hash1Old := Hash1(api, hFn, oldKey, oldValue)
 	hash1New := Hash1(api, hFn, key, value)
 
@@ -180,7 +179,6 @@ func VerifierWithLeafHashFlag(
 	key, hash1New frontend.Variable,
 	fnc frontend.Variable,
 ) frontend.Variable {
-
 	nLevels := len(siblings)
 
 	// level state machines
@@ -195,13 +193,11 @@ func VerifierWithLeafHashFlag(
 
 	for i := range nLevels {
 		if i == 0 {
-			stTop[i], stI0[i], stIOld[i], stINew[i], stNa[i] =
-				VerifierSM(api, isOld0, smtLevIns[i], fnc,
-					enabled, 0, 0, 0, api.Sub(1, enabled))
+			stTop[i], stI0[i], stIOld[i], stINew[i], stNa[i] = VerifierSM(api, isOld0, smtLevIns[i], fnc,
+				enabled, 0, 0, 0, api.Sub(1, enabled))
 		} else {
-			stTop[i], stI0[i], stIOld[i], stINew[i], stNa[i] =
-				VerifierSM(api, isOld0, smtLevIns[i], fnc,
-					stTop[i-1], stI0[i-1], stIOld[i-1], stINew[i-1], stNa[i-1])
+			stTop[i], stI0[i], stIOld[i], stINew[i], stNa[i] = VerifierSM(api, isOld0, smtLevIns[i], fnc,
+				stTop[i-1], stI0[i-1], stIOld[i-1], stINew[i-1], stNa[i-1])
 		}
 	}
 

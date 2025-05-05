@@ -42,7 +42,6 @@ func MultiAnd(api frontend.API, in []frontend.Variable) frontend.Variable {
 func Switcher(api frontend.API,
 	sel, l, r frontend.Variable,
 ) (frontend.Variable, frontend.Variable) {
-
 	outL := api.Select(sel, r, l) // if sel==1 pick r else l
 	outR := api.Select(sel, l, r) // if sel==1 pick l else r
 	return outL, outR

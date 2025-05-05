@@ -16,7 +16,6 @@ func init() { solver.RegisterHint(MinMaxHint) }
 //	· internal node : H(min , max)
 //	· leaf          : H(key , value , flag)
 func HashPoseidon2Gnark(api frontend.API, limbs ...frontend.Variable) (frontend.Variable, error) {
-
 	// off-circuit ordering for the 2-input case
 	if len(limbs) == 2 {
 		ord, err := api.NewHint(MinMaxHint, 2, limbs[0], limbs[1]) // [min,max]
