@@ -71,6 +71,67 @@ func (h *MiMC) AssertSumIsEqualFlag(expected frontend.Variable) frontend.Variabl
 	return h.api.IsZero(h.api.Sub(res, expected))
 }
 
+func (h *MiMC) MultiHash(inputs ...frontend.Variable) (frontend.Variable, error) {
+	// if the number of inputs is less than maxInputs, we can use the MiMC hash
+	// function directly
+	if len(inputs) < maxInputs {
+		if err := h.Write(inputs...); err != nil {
+			return nil, err
+		}
+		return h.Sum(), nil
+	} else if len(inputs)/maxInputs > maxInputs {
+		return nil, fmt.Errorf("too many inputs.")
+	}
+	// calculate chunk hashes
+	hashed := []frontend.Variable{}
+	chunk := []frontend.Variable{}
+	for _, input := range inputs {
+		if len(chunk) == maxInputs {
+			if err := h.Write(chunk...); err != nil {
+				return nil, err
+			}
+			hashed = append(hashed, h.Sum())
+			chunk = []frontend.Variable{}
+			h.Reset()
+		}
+		chunk = append(chunk, input)
+	}
+	// if the final chunk is not empty, hash it to get the last chunk hash
+	if len(chunk) > 0 {
+		if err := h.Write(chunk...); err != nil {
+			return nil, err
+		}
+		hashed = append(hashed, h.Sum())
+		h.Reset()
+	}
+	// if there is only one chunk, return its hash
+	if len(hashed) == 1 {
+		return hashed[0], nil
+	}
+	// return the hash of all chunk hashes
+	if err := h.Write(hashed...); err != nil {
+		return nil, err
+	}
+	return h.Sum(), nil
+}
+
+func (h *MiMC) AssertMultiHashIsEqualFlag(expected frontend.Variable, inputs ...frontend.Variable) (frontend.Variable, error) {
+	sum, err := h.MultiHash(inputs...)
+	if err != nil {
+		return 0, err
+	}
+	return h.api.IsZero(h.api.Sub(&sum, &expected)), nil
+}
+
+func (h *MiMC) AssertMultiHashIsEqual(expected frontend.Variable, inputs ...frontend.Variable) error {
+	flag, err := h.AssertMultiHashIsEqualFlag(expected, inputs...)
+	if err != nil {
+		return err
+	}
+	h.api.AssertIsEqual(flag, 1)
+	return nil
+}
+
 func (h *MiMC) pow7(x frontend.Variable) frontend.Variable {
 	x2 := h.api.Mul(x, x)
 	x3 := h.api.Mul(x2, x)
@@ -80,7 +141,7 @@ func (h *MiMC) pow7(x frontend.Variable) frontend.Variable {
 
 func (h *MiMC) encrypt(m frontend.Variable) frontend.Variable {
 	x := m
-	for i := 0; i < nRounds; i++ {
+	for i := range nRounds {
 		sum := h.api.Add(x, h.h, h.params[i])
 		x = h.pow7(sum)
 	}

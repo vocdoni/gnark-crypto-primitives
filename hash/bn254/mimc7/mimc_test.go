@@ -2,6 +2,7 @@ package mimc7
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	"github.com/iden3/go-iden3-crypto/mimc7"
 	"github.com/vocdoni/arbo"
+	"github.com/vocdoni/gnark-crypto-primitives/internal"
 	"go.vocdoni.io/dvote/util"
 )
 
@@ -94,7 +96,7 @@ func TestMaxAndLimitInputsMiMC(t *testing.T) {
 	inputs := []*big.Int{}
 	emulatedInputs := [maxInputs]frontend.Variable{}
 	limitEmulatedInputs := [maxInputs + 1]frontend.Variable{}
-	for i := 0; i < maxInputs; i++ {
+	for i := range maxInputs {
 		inputs = append(inputs, input)
 		emulatedInputs[i] = input
 		limitEmulatedInputs[i] = input
@@ -119,4 +121,48 @@ func TestMaxAndLimitInputsMiMC(t *testing.T) {
 			Preimages: limitEmulatedInputs,
 		}, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 	})
+}
+
+const multiInputs = 100
+
+type testMultiMiMCCircuit struct {
+	Hash      frontend.Variable `gnark:",public"`
+	Preimages [multiInputs]frontend.Variable
+}
+
+func (circuit *testMultiMiMCCircuit) Define(api frontend.API) error {
+	mimc, err := NewMiMC(api)
+	if err != nil {
+		return err
+	}
+	res, err := mimc.MultiHash(circuit.Preimages[:]...)
+	if res != nil {
+		api.Println(err.Error())
+		api.AssertIsEqual(1, 0)
+	}
+	api.AssertIsEqual(res, circuit.Hash)
+	return nil
+}
+
+func TestMultiMiMC(t *testing.T) {
+	// generate random inputs
+	inputs := []*big.Int{}
+	frontendInputs := [multiInputs]frontend.Variable{}
+	for i := range multiInputs {
+		input := new(big.Int).SetBytes(util.RandomBytes(12))
+		inputs = append(inputs, input)
+		frontendInputs[i] = input
+	}
+	hash, err := internal.MultiMiMC7(inputs, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	witness := testMultiMiMCCircuit{
+		Preimages: frontendInputs,
+		Hash:      hash,
+	}
+	// run the test
+	assert := test.NewAssert(t)
+	assert.SolvingSucceeded(&testMultiMiMCCircuit{}, &witness,
+		test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
