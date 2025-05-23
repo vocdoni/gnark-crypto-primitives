@@ -165,9 +165,7 @@ func (c *testElGamalEncryptCircuit) Define(api frontend.API) error {
 		return err
 	}
 	res.AssertIsEqual(api, &c.Result)
-
-	res.AssertDecrypt(api, c.PrivKey, c.Msg)
-	return nil
+	return res.AssertDecrypt(api, c.PrivKey, c.Msg)
 }
 
 func TestEncryptAssertDecrypt(t *testing.T) {
