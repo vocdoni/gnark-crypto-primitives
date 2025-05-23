@@ -6,6 +6,7 @@ import (
 	ecc_tweds "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
+	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
 
 const NumCiphertexts = 8
@@ -151,4 +152,81 @@ func (z *Ciphertext) Serialize() []frontend.Variable {
 		z.C2.X,
 		z.C2.Y,
 	}
+}
+
+// DecryptionProof is a non-interactive Chaum–Pedersen proof that C2 – M·G and
+// C1 share the same discrete log with respect to P and G.
+type DecryptionProof struct {
+	A1 twistededwards.Point
+	A2 twistededwards.Point
+	Z  frontend.Variable
+}
+
+// VerifyDecryptionProof checks a Chaum–Pedersen proof of correct decryption.
+// It verifies that:
+//
+//	z·G = A1 + e·P
+//	z·C1 = A2 + e·D
+//
+// where e is the Fiat-Shamir challenge, P is the public key, G is the base
+// point, D is the shared secret part, and z is the random scalar used in the
+// encryption.
+func (p *DecryptionProof) Verify(
+	api frontend.API,
+	hFn utils.Hasher,
+	pubkey twistededwards.Point,
+	ciphertext Ciphertext,
+	msg frontend.Variable,
+) error {
+	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
+	if err != nil {
+		return err
+	}
+	base := curve.Params().Base
+	G := twistededwards.Point{X: base[0], Y: base[1]}
+
+	// M = [msg] * G
+	M := curve.ScalarMul(G, msg)
+	// D = C2 - M = C2 + [-M]
+	D := curve.Add(ciphertext.C2, curve.Neg(M))
+
+	// E (Fiat-Shamir challenge) = hFn(PubKey, PubKey, C1, D, A1, A2)
+	E := hashPointsToScalar(api, hFn, pubkey, pubkey, ciphertext.C1, D, p.A1, p.A2)
+
+	// zG = [z] * G
+	zG := curve.ScalarMul(G, p.Z)
+	// eP = [E] * P
+	eP := curve.ScalarMul(pubkey, E)
+	// A1PlusEP = A1 + eP
+	A1PlusEP := curve.Add(zG, eP)
+	// z·G == A1 + e·P
+	api.AssertIsEqual(A1PlusEP.X, zG.X)
+	api.AssertIsEqual(A1PlusEP.Y, zG.Y)
+
+	// zC1 = [z] * C1
+	zC1 := curve.ScalarMul(ciphertext.C1, p.Z)
+	// eD = [E] * D
+	eD := curve.ScalarMul(D, E)
+	// A2PlusED = A2 + eD
+	A2PlusED := curve.Add(ciphertext.C1, eD)
+	// z·C1 == A2 + e·D
+	api.AssertIsEqual(A2PlusED.X, zC1.X)
+	api.AssertIsEqual(A2PlusED.Y, zC1.Y)
+	return nil
+}
+
+// hashPointsToScalar hashes the given points to a scalar using the provided
+// hasher function. It concatenates the X and Y coordinates of each point and
+// passes them to the hasher function. It is the Fiat-Shamir transformation.
+func hashPointsToScalar(api frontend.API, hFn utils.Hasher, points ...twistededwards.Point) frontend.Variable {
+	// Hash the points to a scalar
+	coords := []frontend.Variable{}
+	for _, p := range points {
+		coords = append(coords, p.X, p.Y)
+	}
+	digest, err := hFn(api, coords...)
+	if err != nil {
+		panic(err)
+	}
+	return digest
 }
