@@ -107,13 +107,13 @@ func (t *WrapperArbo) SetWithTx(tx db.WriteTx, key, value *big.Int) (Assignment,
 func (t *WrapperArbo) add(tx db.WriteTx, k, v []byte, _ bool, assignment *Assignment) error {
 	assignment.Fnc0 = 1
 	assignment.Fnc1 = 0
-	return t.Tree.AddWithTx(tx, k, v)
+	return t.AddWithTx(tx, k, v)
 }
 
 func (t *WrapperArbo) update(tx db.WriteTx, k, v []byte, _ bool, assignment *Assignment) error {
 	assignment.Fnc0 = 0
 	assignment.Fnc1 = 1
-	return t.Tree.UpdateWithTx(tx, k, v)
+	return t.UpdateWithTx(tx, k, v)
 }
 
 func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action func(k, v []byte, exists bool, assignment *Assignment) error) (Assignment, error) {
@@ -132,7 +132,7 @@ func (t *WrapperArbo) addOrUpdate(tx db.WriteTx, key, value *big.Int, action fun
 	keyBytes := arbo.BigIntToBytesLE(bLen, key)
 	valueBytes := arbo.BigIntToBytesLE(bLen, value)
 
-	oldKeyBytes, oldValueBytes, err := t.Tree.GetWithTx(tx, keyBytes)
+	oldKeyBytes, oldValueBytes, err := t.GetWithTx(tx, keyBytes)
 	if err != nil && !errors.Is(err, arbo.ErrKeyNotFound) {
 		return assignment, err
 	}
