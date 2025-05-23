@@ -198,7 +198,7 @@ func (p *DecryptionProof) Verify(
 	// eP = [E] * P
 	eP := curve.ScalarMul(pubkey, E)
 	// A1PlusEP = A1 + eP
-	A1PlusEP := curve.Add(zG, eP)
+	A1PlusEP := curve.Add(p.A1, eP)
 	// z·G == A1 + e·P
 	api.AssertIsEqual(A1PlusEP.X, zG.X)
 	api.AssertIsEqual(A1PlusEP.Y, zG.Y)
@@ -208,7 +208,7 @@ func (p *DecryptionProof) Verify(
 	// eD = [E] * D
 	eD := curve.ScalarMul(D, E)
 	// A2PlusED = A2 + eD
-	A2PlusED := curve.Add(ciphertext.C1, eD)
+	A2PlusED := curve.Add(p.A2, eD)
 	// z·C1 == A2 + e·D
 	api.AssertIsEqual(A2PlusED.X, zC1.X)
 	api.AssertIsEqual(A2PlusED.Y, zC1.Y)
