@@ -84,6 +84,48 @@ func (z *Ciphertext) Add(api frontend.API, x, y *Ciphertext) *Ciphertext {
 	return z
 }
 
+// Encrypt encrypts the message m using the public key pubKey and random k and
+// returns the ciphertext z.
+func (z *Ciphertext) Encrypt(api frontend.API, pubKey twistededwards.Point, k, m frontend.Variable) (*Ciphertext, error) {
+	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
+	if err != nil {
+		return nil, err
+	}
+	// get the base point (G)
+	base := curve.Params().Base
+	G := twistededwards.Point{X: base[0], Y: base[1]}
+	// c1 = [k] * G
+	z.C1 = curve.ScalarMul(G, k)
+	// s = [k] * publicKey
+	s := curve.ScalarMul(pubKey, k)
+	// m = [message] * G
+	mPoint := curve.ScalarMul(G, m)
+	// c2 = m + s
+	z.C2 = curve.Add(mPoint, s)
+	return z, nil
+}
+
+// AssertDecrypt checks if the ciphertext z can be decrypted with privKey
+// to the message m. It returns an error if the curve initialization fails.
+func (z *Ciphertext) AssertDecrypt(api frontend.API, privKey, m frontend.Variable) error {
+	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
+	if err != nil {
+		return err
+	}
+	base := curve.Params().Base
+	G := twistededwards.Point{X: base[0], Y: base[1]}
+	// s = [privKey] * C1
+	S := curve.ScalarMul(z.C1, privKey)
+	// M = [message] * G
+	M := curve.ScalarMul(G, m)
+	// M' = C2 - S = C2 + [-S]
+	MPrime := curve.Add(z.C2, curve.Neg(S))
+	// M' == M
+	api.AssertIsEqual(MPrime.X, M.X)
+	api.AssertIsEqual(MPrime.Y, M.Y)
+	return nil
+}
+
 // AssertIsEqual fails if any of the fields differ between z and x
 func (z *Ciphertext) AssertIsEqual(api frontend.API, x *Ciphertext) {
 	api.AssertIsEqual(z.C1.X, z.C1.X)

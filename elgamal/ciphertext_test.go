@@ -34,11 +34,13 @@ func (c *testElGamalAddCircuit) Define(api frontend.API) error {
 
 func TestElGamalAdd(t *testing.T) {
 	// generate a public mocked key and a random k to encrypt first message
-	_, pubKey := generateKeyPair()
+	_, pubKey, err := generateKeyPair(nil)
+	if err != nil {
+		t.Fatalf("Error generating key pair: %v\n", err)
+	}
 	k1, err := randomK()
 	if err != nil {
-		t.Errorf("Error generating random k: %v\n", err)
-		return
+		t.Fatalf("Error generating random k: %v\n", err)
 	}
 	// encrypt a simple message
 	msg1 := big.NewInt(3)
@@ -49,8 +51,7 @@ func TestElGamalAdd(t *testing.T) {
 	// generate a second random k to encrypt a second message
 	k2, err := randomK()
 	if err != nil {
-		t.Errorf("Error generating random k: %v\n", err)
-		return
+		t.Fatalf("Error generating random k: %v\n", err)
 	}
 	// encrypt a second simple message
 	msg2 := big.NewInt(5)
@@ -112,7 +113,7 @@ func TestElGamalAdd(t *testing.T) {
 
 func randomK() (*big.Int, error) {
 	// Generate random scalar k
-	kBytes := make([]byte, 32)
+	kBytes := make([]byte, 20)
 	_, err := rand.Read(kBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random k: %v", err)
@@ -123,9 +124,18 @@ func randomK() (*big.Int, error) {
 	return k, nil
 }
 
-func generateKeyPair() (babyjub.PrivateKey, *babyjub.PublicKey) {
-	privkey := babyjub.NewRandPrivKey()
-	return privkey, privkey.Public()
+func generateKeyPair(d *big.Int) (privateKey *big.Int, publicKey *babyjub.PublicKey, err error) {
+	if d == nil {
+		if d, err = rand.Int(rand.Reader, babyjub.SubOrder); err != nil {
+			return nil, nil, fmt.Errorf("failed to generate private key scalar: %v", err)
+		}
+	}
+	if d.Sign() == 0 {
+		d = big.NewInt(1) // avoid zero private keys
+	}
+
+	pubKey := babyjub.NewPoint().Mul(d, babyjub.B8)
+	return d, (*babyjub.PublicKey)(pubKey), nil
 }
 
 func encrypt(message *big.Int, publicKey *babyjub.PublicKey, k *big.Int) (*babyjub.Point, *babyjub.Point) {
@@ -138,4 +148,71 @@ func encrypt(message *big.Int, publicKey *babyjub.PublicKey, k *big.Int) (*babyj
 	// c2 = m + s
 	c2p := babyjub.NewPointProjective().Add(m.Projective(), s.Projective())
 	return c1, c2p.Affine()
+}
+
+type testElGamalEncryptCircuit struct {
+	PrivKey frontend.Variable
+	PubKey  twistededwards.Point `gnark:",public"`
+	Result  Ciphertext           `gnark:",public"`
+	K       frontend.Variable
+	Msg     frontend.Variable
+}
+
+func (c *testElGamalEncryptCircuit) Define(api frontend.API) error {
+	api.Println(c.PrivKey)
+	res, err := new(Ciphertext).Encrypt(api, c.PubKey, c.K, c.Msg)
+	if err != nil {
+		return err
+	}
+	res.AssertIsEqual(api, &c.Result)
+
+	res.AssertDecrypt(api, c.PrivKey, c.Msg)
+	return nil
+}
+
+func TestEncryptAssertDecrypt(t *testing.T) {
+	d, _ := new(big.Int).SetString("1060327589227493362592243069457602024470945722896814686698953605330352020704", 10)
+	// generate a public mocked key and a random k to encrypt first message
+	privKey, pubKey, err := generateKeyPair(d)
+	if err != nil {
+		t.Fatalf("Error generating key pair: %v\n", err)
+		return
+	}
+	k, err := randomK()
+	if err != nil {
+		t.Fatalf("Error generating random k: %v\n", err)
+		return
+	}
+	// encrypt a simple message
+	msg := big.NewInt(3)
+	a1, a2 := encrypt(msg, pubKey, k)
+	// reduce the points to reduced twisted edwards form
+	xA1RTE, yA1RTE := format.FromTEtoRTE(a1.X, a1.Y)
+	xA2RTE, yA2RTE := format.FromTEtoRTE(a2.X, a2.Y)
+
+	pubKeyX, pubKeyY := format.FromTEtoRTE(pubKey.X, pubKey.Y)
+
+	assignments := &testElGamalEncryptCircuit{
+		PrivKey: privKey,
+		PubKey: twistededwards.Point{
+			X: pubKeyX,
+			Y: pubKeyY,
+		},
+		Result: Ciphertext{
+			C1: twistededwards.Point{
+				X: xA1RTE,
+				Y: yA1RTE,
+			},
+			C2: twistededwards.Point{
+				X: xA2RTE,
+				Y: yA2RTE,
+			},
+		},
+		K:   k,
+		Msg: msg,
+	}
+
+	assert := test.NewAssert(t)
+	assert.SolvingSucceeded(&testElGamalEncryptCircuit{}, assignments,
+		test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
 }
