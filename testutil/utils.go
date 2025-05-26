@@ -85,7 +85,7 @@ func GenerateAccountAndSign(input []byte) (*TestSignature, error) {
 	return &TestSignature{
 		PublicKey: struct {
 			X, Y *big.Int
-		}{privKey.PublicKey.X, privKey.PublicKey.Y},
+		}{privKey.X, privKey.Y},
 		R:       r,
 		S:       s,
 		Address: new(big.Int).SetBytes(address.Bytes()),
