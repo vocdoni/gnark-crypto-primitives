@@ -185,8 +185,10 @@ func (p *DecryptionProof) Verify(
 	base := curve.Params().Base
 	G := twistededwards.Point{X: base[0], Y: base[1]}
 
+	finalMsg, multiplier := safeMsgAndMultiplier(api, msg)
+
 	// M = [msg] * G
-	M := curve.ScalarMul(G, msg)
+	M := curve.ScalarMul(G, finalMsg)
 	// D = C2 - M = C2 + [-M]
 	D := curve.Add(ciphertext.C2, curve.Neg(M))
 
@@ -200,8 +202,8 @@ func (p *DecryptionProof) Verify(
 	// A1PlusEP = A1 + eP
 	A1PlusEP := curve.Add(p.A1, eP)
 	// z·G == A1 + e·P
-	api.AssertIsEqual(A1PlusEP.X, zG.X)
-	api.AssertIsEqual(A1PlusEP.Y, zG.Y)
+	assertIsEqualWithMultiplier(api, A1PlusEP.X, zG.X, multiplier)
+	assertIsEqualWithMultiplier(api, A1PlusEP.Y, zG.Y, multiplier)
 
 	// zC1 = [z] * C1
 	zC1 := curve.ScalarMul(ciphertext.C1, p.Z)
@@ -210,9 +212,31 @@ func (p *DecryptionProof) Verify(
 	// A2PlusED = A2 + eD
 	A2PlusED := curve.Add(p.A2, eD)
 	// z·C1 == A2 + e·D
-	api.AssertIsEqual(A2PlusED.X, zC1.X)
-	api.AssertIsEqual(A2PlusED.Y, zC1.Y)
+	assertIsEqualWithMultiplier(api, A2PlusED.X, zC1.X, multiplier)
+	assertIsEqualWithMultiplier(api, A2PlusED.Y, zC1.Y, multiplier)
 	return nil
+}
+
+// safeMsgAndMultiplier returns a final message and a multiplier based on the
+// input message. If the message is zero, it returns 1 as the final message
+// and 0 as the multiplier to avoid operations with zero. If the message is not
+// zero, it returns the original message and 1 as the multiplier.
+func safeMsgAndMultiplier(api frontend.API, msg frontend.Variable) (frontend.Variable, frontend.Variable) {
+	// If msg is zero, we set it to 1, otherwise we keep it as is.
+	finalMsg := api.Select(api.IsZero(msg), frontend.Variable(1), msg)
+	// If msg is zero, we set the multiplier to 0, otherwise we set it to 1.
+	multiplier := api.Select(api.IsZero(msg), frontend.Variable(0), frontend.Variable(1))
+	return finalMsg, multiplier
+}
+
+// assertIsEqualWithMultiplier asserts that two variables are equal after
+// multiplying them by a given multiplier. This is useful to avoid zero
+// multiplications in the circuit, which can lead to issues with zero
+// variables in the circuit.
+func assertIsEqualWithMultiplier(api frontend.API, x, y, multiplier frontend.Variable) {
+	finalX := api.Mul(x, multiplier)
+	finalY := api.Mul(y, multiplier)
+	api.AssertIsEqual(finalX, finalY)
 }
 
 // hashPointsToScalar hashes the given points to a scalar using the provided
