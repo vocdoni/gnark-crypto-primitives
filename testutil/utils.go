@@ -7,11 +7,10 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc/secp256k1/ecdsa"
 	"github.com/ethereum/go-ethereum/crypto"
-	arbotree "github.com/vocdoni/arbo"
-	"go.vocdoni.io/dvote/db"
-	"go.vocdoni.io/dvote/db/pebbledb"
-	"go.vocdoni.io/dvote/tree/arbo"
-	"go.vocdoni.io/dvote/util"
+	"github.com/vocdoni/arbo"
+	"github.com/vocdoni/davinci-node/db"
+	"github.com/vocdoni/davinci-node/db/pebbledb"
+	"github.com/vocdoni/davinci-node/util"
 )
 
 // CensusTestConfig is a configuration for generating a census proof for testing
@@ -24,7 +23,7 @@ type CensusTestConfig struct {
 	ValidSiblings int
 	TotalSiblings int
 	KeyLen        int
-	Hash          arbotree.HashFunction
+	Hash          arbo.HashFunction
 	BaseField     *big.Int
 }
 
@@ -106,7 +105,7 @@ func generateCensusProof(
 	if err != nil {
 		return nil, err
 	}
-	tree, err := arbotree.NewTree(arbotree.Config{
+	tree, err := arbo.NewTree(arbo.Config{
 		Database:     dbase,
 		MaxLevels:    conf.TotalSiblings,
 		HashFunction: conf.Hash,
@@ -117,7 +116,7 @@ func generateCensusProof(
 
 	// insert the user-supplied pairs
 	for i, k := range ks {
-		ks[i] = arbotree.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes() // canonical BE
+		ks[i] = arbo.BigToFF(conf.BaseField, new(big.Int).SetBytes(k)).Bytes() // canonical BE
 		if err = tree.Add(ks[i], vs[i]); err != nil {
 			return nil, err
 		}
@@ -125,7 +124,7 @@ func generateCensusProof(
 
 	// add random leaves so that some siblings are non-zero
 	for i := 1; i < conf.ValidSiblings; i++ {
-		rk := arbotree.BigToFF(conf.BaseField,
+		rk := arbo.BigToFF(conf.BaseField,
 			new(big.Int).SetBytes(util.RandomBytes(conf.KeyLen))).Bytes()
 		rv := new(big.Int).SetBytes(util.RandomBytes(8)).Bytes()
 		if err = tree.Add(rk, rv); err != nil {
@@ -167,9 +166,9 @@ func generateCensusProof(
 		}
 
 		// off-chain sanity check
-		if ok, _ := arbotree.CheckProof(tree.HashFunction(),
+		if ok, _ := arbo.CheckProof(tree.HashFunction(),
 			kBE, vs[i], rootBE, sibPacked); !ok {
-			return nil, fmt.Errorf("arbotree proof verification failed")
+			return nil, fmt.Errorf("arbo proof verification failed")
 		}
 
 		proofs = append(proofs, &TestCensusProofs{
@@ -203,6 +202,6 @@ func GenerateCensusProofLE(
 ) (*TestCensus, error) {
 	return generateCensusProof(
 		conf, ks, vs,
-		arbo.BytesLEToBigInt, // LE
+		arbo.BytesToBigInt, // LE
 	)
 }

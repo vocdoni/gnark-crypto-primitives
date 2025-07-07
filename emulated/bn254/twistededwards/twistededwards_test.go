@@ -14,7 +14,7 @@ import (
 	"github.com/consensys/gnark/std/algebra/emulated/sw_bn254"
 	"github.com/consensys/gnark/std/math/emulated"
 	"github.com/consensys/gnark/test"
-	"github.com/vocdoni/vocdoni-z-sandbox/crypto/ecc/format"
+	"github.com/vocdoni/davinci-node/crypto/ecc/format"
 )
 
 type testFromTwistedEdwards struct {

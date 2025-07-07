@@ -3,7 +3,7 @@ package smt
 import (
 	"math/big"
 
-	"go.vocdoni.io/dvote/db"
+	"github.com/vocdoni/davinci-node/db"
 )
 
 // Wrapper defines methods for wrapping existing SMT implementations, useful for

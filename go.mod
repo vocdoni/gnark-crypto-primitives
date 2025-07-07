@@ -13,9 +13,8 @@ require (
 	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
 	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
 	github.com/rs/zerolog v1.33.0
-	github.com/vocdoni/arbo v0.0.0-20250513133053-b35dcc9c1f00
-	github.com/vocdoni/vocdoni-z-sandbox v0.0.0-20250522144821-639fb5c1a66f
-	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5
+	github.com/vocdoni/arbo v0.0.0-20250707135934-84e8a1884497
+	github.com/vocdoni/davinci-node v0.0.0-20250707135342-a3ec988643b3
 )
 
 require (
@@ -36,7 +35,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
-	github.com/glendc/go-external-ip v0.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -61,6 +59,7 @@ require (
 	github.com/ronanh/intcomp v1.1.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/sync v0.14.0 // indirect
