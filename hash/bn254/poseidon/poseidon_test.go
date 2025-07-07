@@ -14,7 +14,7 @@ import (
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
 	hash "github.com/iden3/go-iden3-crypto/poseidon"
-	"github.com/vocdoni/vocdoni-z-sandbox/crypto/hash/poseidon"
+	"github.com/vocdoni/davinci-node/crypto/hash/poseidon"
 )
 
 type testPoseidonCiruit struct {

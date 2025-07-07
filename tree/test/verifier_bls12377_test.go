@@ -15,9 +15,9 @@ import (
 	"github.com/consensys/gnark/test"
 	qt "github.com/frankban/quicktest"
 	arbotree "github.com/vocdoni/arbo"
+	"github.com/vocdoni/davinci-node/util"
 	"github.com/vocdoni/gnark-crypto-primitives/testutil"
 	"github.com/vocdoni/gnark-crypto-primitives/tree/smt"
-	"go.vocdoni.io/dvote/util"
 )
 
 const (

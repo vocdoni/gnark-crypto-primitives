@@ -18,8 +18,8 @@ import (
 	"github.com/consensys/gnark/test"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/rs/zerolog"
+	"github.com/vocdoni/davinci-node/crypto/ecc/format"
 	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
-	"github.com/vocdoni/vocdoni-z-sandbox/crypto/ecc/format"
 )
 
 type testElGamalAddCircuit struct {

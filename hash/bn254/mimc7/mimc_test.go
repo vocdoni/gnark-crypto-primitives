@@ -13,7 +13,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	"github.com/iden3/go-iden3-crypto/mimc7"
 	"github.com/vocdoni/arbo"
-	"go.vocdoni.io/dvote/util"
+	"github.com/vocdoni/davinci-node/util"
 )
 
 type testMiMCCircuit struct {
