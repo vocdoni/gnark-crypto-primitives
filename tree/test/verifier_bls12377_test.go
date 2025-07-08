@@ -22,7 +22,7 @@ import (
 
 const (
 	v_siblings = 10
-	n_siblings = 64
+	n_siblings = 160
 	k_len      = n_siblings / 8
 )
 

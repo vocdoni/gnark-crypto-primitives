@@ -26,7 +26,7 @@ var Levels int
 
 // Register hint functions and initialize levels
 func init() {
-	Levels = 64 // default
+	Levels = 160 // default
 	solver.RegisterHint(
 		KeyBitsDecompHint,
 		FirstDiffHint,
