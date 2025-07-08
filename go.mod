@@ -10,10 +10,8 @@ require (
 	github.com/ethereum/go-ethereum v1.14.12
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17
-	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
-	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
 	github.com/rs/zerolog v1.33.0
-	github.com/vocdoni/arbo v0.0.0-20250707135934-84e8a1884497
+	github.com/vocdoni/arbo v0.0.0-20250707215550-6dee1243bb29
 	github.com/vocdoni/davinci-node v0.0.0-20250707135342-a3ec988643b3
 )
 
@@ -42,7 +40,6 @@ require (
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/ingonyama-zk/icicle-gnark/v3 v3.2.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -59,7 +56,6 @@ require (
 	github.com/ronanh/intcomp v1.1.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.vocdoni.io/dvote v1.10.2-0.20241024102542-c1ce6d744bc5 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/sync v0.14.0 // indirect
@@ -67,6 +63,5 @@ require (
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.4.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )

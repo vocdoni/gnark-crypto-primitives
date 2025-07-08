@@ -43,7 +43,7 @@ func InclusionVerifier(
 }
 
 /*
-ExclusionVerifier proves that key is **not** present in the tree.
+ExclusionVerifier proves that key is not present in the tree.
 
 Parameters
   - api              – gnark API
@@ -121,7 +121,7 @@ func Verifier(
 }
 
 /*
-VerifierWithLeafHash is a thin wrapper that **asserts** the flag returned by
+VerifierWithLeafHash is a thin wrapper that asserts the flag returned by
 VerifierWithLeafHashFlag.  Use it when a failing proof must abort the circuit.
 
 Parameters coincide with VerifierWithLeafHashFlag (see below).
@@ -150,7 +150,7 @@ VerifierWithLeafHashFlag does the heavy lifting.  It rebuilds the root,
 executes the LevIns and VerifierSM state machines, prevents illegal key
 reuse in updates, and finally compares the computed root with the public
 root.  All individual checks are AND-ed and the function returns 1 when
-**every** condition holds, 0 otherwise.
+every condition holds, 0 otherwise.
 
 Parameters
   - api, hFn         – gnark API and Poseidon hasher
