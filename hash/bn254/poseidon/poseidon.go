@@ -120,7 +120,7 @@ func (h *Poseidon) Sum() frontend.Variable {
 	p := getConstant(P, t)
 
 	state := make([]frontend.Variable, t)
-	for j := 0; j < t; j++ {
+	for j := range t {
 		if j == 0 {
 			state[0] = 0
 		} else {
@@ -130,20 +130,20 @@ func (h *Poseidon) Sum() frontend.Variable {
 	state = h.ark(state, c, 0)
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			state[j] = h.sigma(state[j])
 		}
 		state = h.ark(state, c, (r+1)*t)
 		state = h.mix(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		state[j] = h.sigma(state[j])
 	}
 	state = h.ark(state, c, nRoundsF/2*t)
 	state = h.mix(state, p)
 
-	for r := 0; r < nRoundsP; r++ {
+	for r := range nRoundsP {
 		state[0] = h.sigma(state[0])
 		state[0] = h.api.Add(state[0], c[(nRoundsF/2+1)*t+r])
 		newState0 := frontend.Variable(0)
@@ -159,14 +159,14 @@ func (h *Poseidon) Sum() frontend.Variable {
 	}
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			state[j] = h.sigma(state[j])
 		}
 		state = h.ark(state, c, (nRoundsF/2+1)*t+nRoundsP+r*t)
 		state = h.mix(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		state[j] = h.sigma(state[j])
 	}
 
@@ -192,9 +192,9 @@ func (h *Poseidon) ark(in []frontend.Variable, c []*big.Int, r int) []frontend.V
 func (h *Poseidon) mix(in []frontend.Variable, m [][]*big.Int) []frontend.Variable {
 	t := len(in)
 	out := make([]frontend.Variable, t)
-	for i := 0; i < t; i++ {
+	for i := range t {
 		lc := frontend.Variable(0)
-		for j := 0; j < t; j++ {
+		for j := range t {
 			lc = h.api.Add(lc, h.api.Mul(m[j][i], in[j]))
 		}
 		out[i] = lc
@@ -205,7 +205,7 @@ func (h *Poseidon) mix(in []frontend.Variable, m [][]*big.Int) []frontend.Variab
 func (h *Poseidon) mixLast(in []frontend.Variable, m [][]*big.Int, s int) frontend.Variable {
 	t := len(in)
 	out := frontend.Variable(0)
-	for j := 0; j < t; j++ {
+	for j := range t {
 		out = h.api.Add(out, h.api.Mul(m[j][s], in[j]))
 	}
 	return out

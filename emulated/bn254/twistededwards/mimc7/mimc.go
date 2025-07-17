@@ -85,7 +85,7 @@ func (h *MiMC) pow7(x emulated.Element[sw_bn254.ScalarField]) emulated.Element[s
 
 func (h *MiMC) encrypt(m emulated.Element[sw_bn254.ScalarField]) emulated.Element[sw_bn254.ScalarField] {
 	x := m
-	for i := 0; i < nRounds; i++ {
+	for i := range nRounds {
 		sum := h.field.Add(&x, &h.h)
 		sum = h.field.Add(sum, &h.params[i])
 		x = h.pow7(*sum)

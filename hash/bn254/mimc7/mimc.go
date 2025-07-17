@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/algebra/emulated/sw_bn254"
-	"github.com/consensys/gnark/std/math/emulated"
 )
 
 // maxInputs constant is the maximum number of inputs that the MiMC hash
@@ -43,7 +41,7 @@ func (h *MiMC) Write(data ...frontend.Variable) error {
 // Reset resets the Hash to its initial state.
 func (h *MiMC) Reset() {
 	h.data = nil
-	h.h = emulated.ValueOf[sw_bn254.ScalarField](nil)
+	h.h = frontend.Variable(0)
 }
 
 // Sum hash using [Miyaguchi–Preneel] where the XOR operation is replaced by
@@ -80,7 +78,7 @@ func (h *MiMC) pow7(x frontend.Variable) frontend.Variable {
 
 func (h *MiMC) encrypt(m frontend.Variable) frontend.Variable {
 	x := m
-	for i := 0; i < nRounds; i++ {
+	for i := range nRounds {
 		sum := h.api.Add(x, h.h, h.params[i])
 		x = h.pow7(sum)
 	}
