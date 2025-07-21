@@ -26,6 +26,7 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 		api:    api,
 		params: constants,
 		h:      frontend.Variable(0),
+		data:   []frontend.Variable{},
 	}, nil
 }
 
@@ -40,7 +41,7 @@ func (h *MiMC) Write(data ...frontend.Variable) error {
 
 // Reset resets the Hash to its initial state.
 func (h *MiMC) Reset() {
-	h.data = nil
+	h.data = []frontend.Variable{}
 	h.h = frontend.Variable(0)
 }
 

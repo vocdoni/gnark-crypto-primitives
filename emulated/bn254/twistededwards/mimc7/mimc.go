@@ -31,7 +31,8 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 		api:    api,
 		field:  field,
 		params: constants,
-		h:      emulated.ValueOf[sw_bn254.ScalarField](nil),
+		h:      emulated.ValueOf[sw_bn254.ScalarField](0),
+		data:   []emulated.Element[sw_bn254.ScalarField]{},
 	}, nil
 }
 
@@ -46,8 +47,8 @@ func (h *MiMC) Write(data ...emulated.Element[sw_bn254.ScalarField]) error {
 
 // Reset resets the Hash to its initial state.
 func (h *MiMC) Reset() {
-	h.data = nil
-	h.h = emulated.ValueOf[sw_bn254.ScalarField](nil)
+	h.h = emulated.ValueOf[sw_bn254.ScalarField](0)
+	h.data = []emulated.Element[sw_bn254.ScalarField]{}
 }
 
 // Sum hash using [Miyaguchi–Preneel] where the XOR operation is replaced by
