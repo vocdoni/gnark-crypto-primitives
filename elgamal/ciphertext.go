@@ -217,28 +217,3 @@ func hashPointsToScalar(api frontend.API, hFn utils.Hasher, points ...twistededw
 	}
 	return digest
 }
-
-// EncryptedZero returns a ciphertext that encrypts the zero message using the
-// given public key and random k. It uses the base point G from the twisted
-// Edwards curve to create the ciphertext. The ciphertext is constructed as
-// follows:
-//   - C1 = [k] * G
-//   - S = [k] * publicKey
-//   - C2 = zero point (identity point) + S
-func EncryptedZero(api frontend.API, pubKey twistededwards.Point, k frontend.Variable) Ciphertext {
-	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
-	if err != nil {
-		panic(err)
-	}
-	// get the base point (G)
-	base := curve.Params().Base
-	G := twistededwards.Point{X: base[0], Y: base[1]}
-	// c1 = [k] * G
-	c1 := curve.ScalarMul(G, k)
-	// s = [k] * publicKey
-	s := curve.ScalarMul(pubKey, k)
-	mPoint := twistededwards.Point{X: big.NewInt(0), Y: big.NewInt(1)} // zero point
-	// c2 = m + s
-	c2 := curve.Add(mPoint, s)
-	return Ciphertext{C1: c1, C2: c2}
-}
