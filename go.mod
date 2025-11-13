@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/consensys/gnark v0.13.0
-	github.com/consensys/gnark-crypto v0.18.0
+	github.com/consensys/gnark-crypto v0.19.2
 	github.com/ethereum/go-ethereum v1.16.1
 	github.com/frankban/quicktest v1.14.6
 	github.com/iden3/go-iden3-crypto v0.0.17

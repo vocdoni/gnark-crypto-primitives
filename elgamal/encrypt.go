@@ -156,7 +156,7 @@ func FixedBaseScalarMul(api frontend.API, scalar frontend.Variable) twistededwar
 	return res
 }
 
-// Encrypt3 encrypts the message m using the public key pubKey and random k,
+// Encrypt encrypts the message m using the public key pubKey and random k,
 // using optimized fixed-base scalar multiplication for [k]*G and [m]*G.
 // This should provide significant constraint reduction compared to Encrypt and Encrypt2.
 func (z *Ciphertext) Encrypt(api frontend.API, pubKey twistededwards.Point, k, m frontend.Variable) (*Ciphertext, error) {
@@ -181,4 +181,34 @@ func (z *Ciphertext) Encrypt(api frontend.API, pubKey twistededwards.Point, k, m
 	z.C2 = curve.Add(mPoint, s)
 
 	return z, nil
+}
+
+// EncryptedZero returns a ciphertext that encrypts the zero message using the
+// given public key and random k. It uses optimized fixed-base scalar multiplication
+// for [k]*G. The ciphertext is constructed as follows:
+//   - C1 = [k] * G (using fixed-base optimization)
+//   - S = [k] * publicKey (variable-base)
+//   - C2 = zero point (identity point) + S
+func EncryptedZero(api frontend.API, pubKey twistededwards.Point, k frontend.Variable) Ciphertext {
+	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
+	if err != nil {
+		panic(err)
+	}
+
+	// Validate public key is on curve
+	curve.AssertIsOnCurve(pubKey)
+
+	// c1 = [k] * G (using fixed-base optimization)
+	c1 := FixedBaseScalarMul(api, k)
+
+	// s = [k] * publicKey (variable-base, no optimization available)
+	s := curve.ScalarMul(pubKey, k)
+
+	// mPoint is the identity point (encrypting zero)
+	mPoint := twistededwards.Point{X: big.NewInt(0), Y: big.NewInt(1)}
+
+	// c2 = mPoint + s = identity + s = s
+	c2 := curve.Add(mPoint, s)
+
+	return Ciphertext{C1: c1, C2: c2}
 }
