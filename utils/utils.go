@@ -18,14 +18,16 @@ func PackScalarToVar[S emulated.FieldParams](api frontend.API, s emulated.Elemen
 		return nil, err
 	}
 	reduced := field.Reduce(&s)
-	var res frontend.Variable = 0
+	
 	nbBits := fr.BitsPerLimb()
-	coef := new(big.Int)
 	one := big.NewInt(1)
+	
+	terms := make([]frontend.Variable, len(reduced.Limbs))
 	for i := range reduced.Limbs {
-		res = api.Add(res, api.Mul(reduced.Limbs[i], coef.Lsh(one, nbBits*uint(i))))
+		coef := new(big.Int).Lsh(one, nbBits*uint(i))
+		terms[i] = api.Mul(reduced.Limbs[i], coef)
 	}
-	return res, nil
+	return api.Add(frontend.Variable(0), frontend.Variable(0), terms...), nil
 }
 
 // UnpackVarToScalar function converts a frontend.Variable to an emulated

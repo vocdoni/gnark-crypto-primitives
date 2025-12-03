@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"math/big"
+
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/bits"
 	"github.com/consensys/gnark/std/math/emulated"
@@ -29,14 +31,18 @@ func ElemToU8[T emulated.FieldParams](api frontend.API, elem emulated.Element[T]
 // result by 256 and adding the next byte, starting from the most significant
 // byte.
 func U8ToVar(api frontend.API, u8 []uints.U8) (frontend.Variable, error) {
-	res := frontend.Variable(0)
-	b := frontend.Variable(256)
-	// convert each byte to a variable and sum them
-	for i := range u8 {
-		res = api.Mul(res, b)
-		res = api.Add(res, u8[i].Val)
+	n := len(u8)
+	terms := make([]frontend.Variable, n)
+	base := big.NewInt(256)
+
+	for i := 0; i < n; i++ {
+		// Exponent: n - 1 - i (Big Endian)
+		exp := big.NewInt(int64(n - 1 - i))
+		coeff := new(big.Int).Exp(base, exp, nil)
+		terms[i] = api.Mul(u8[i].Val, coeff)
 	}
-	return res, nil
+
+	return api.Add(frontend.Variable(0), frontend.Variable(0), terms...), nil
 }
 
 // U8ToElem converts a slice of uint8 to a field element. It's the inverse
@@ -71,20 +77,15 @@ func U8ToElem[T emulated.FieldParams](api frontend.API, u8s []uints.U8) (emulate
 		offset := i * bytesPerLimb
 
 		// For each byte in the limb
-		value := frontend.Variable(0)
+		terms := make([]frontend.Variable, bytesPerLimb)
 		for j := 0; j < bytesPerLimb; j++ {
 			// Get the multiplier for this byte position (256^position)
-			multiplier := frontend.Variable(1)
-			for k := 0; k < j; k++ {
-				multiplier = api.Mul(multiplier, 256)
-			}
-
-			// Add this byte's contribution to the limb value
-			contribution := api.Mul(u8s[offset+j].Val, multiplier)
-			value = api.Add(value, contribution)
+			// 256^0, 256^1, ... Little Endian within limb
+			multiplier := new(big.Int).Exp(big.NewInt(256), big.NewInt(int64(j)), nil)
+			terms[j] = api.Mul(u8s[offset+j].Val, multiplier)
 		}
 
-		limbs[i] = value
+		limbs[i] = api.Add(frontend.Variable(0), frontend.Variable(0), terms...)
 	}
 
 	// Create and return the element with the constructed limbs

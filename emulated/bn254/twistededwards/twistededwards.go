@@ -15,8 +15,11 @@ import (
 
 var (
 	scalingFactor         = frontend.Variable("6360561867910373094066688120553762416144456282423235903351243436111059670888")
-	emulatedScalingFactor = emulated.Element[sw_bn254.ScalarField]{
-		Limbs: []frontend.Variable{7817090900423792488, 8405395627841593623, 3205086078052995447, 1013295966202553675},
+	emulatedNegScalingFactor = emulated.Element[sw_bn254.ScalarField]{
+		Limbs: []frontend.Variable{"15521113859322357913", "12938262829174804345", "10076105873221699301", 2473702300600416990},
+	}
+	emulatedInvNegScalingFactor = emulated.Element[sw_bn254.ScalarField]{
+		Limbs: []frontend.Variable{2444430762821907778, "13992585508913553050", 6869659700585691715, 304596441941759207},
 	}
 )
 
@@ -43,12 +46,8 @@ func FromEmulatedRTEtoTE(api frontend.API, x, y emulated.Element[sw_bn254.Scalar
 	if err != nil {
 		return emulated.Element[sw_bn254.ScalarField]{}, emulated.Element[sw_bn254.ScalarField]{}, err
 	}
-	// compute negF = -f mod p
-	negF := field.Neg(&emulatedScalingFactor)
-	// compute the inverse of negF in the field
-	negFInv := field.Inverse(negF)
-	// compute xTE = x / (-f)
-	xTE := field.Mul(&x, negFInv)
+	// compute xTE = x * (-f)^-1
+	xTE := field.Mul(&x, &emulatedInvNegScalingFactor)
 	return *xTE, y, nil
 }
 
@@ -57,9 +56,7 @@ func FromEmulatedTEtoRTE(api frontend.API, x, y emulated.Element[sw_bn254.Scalar
 	if err != nil {
 		return emulated.Element[sw_bn254.ScalarField]{}, emulated.Element[sw_bn254.ScalarField]{}, err
 	}
-	// compute negF = -f mod p
-	negF := field.Neg(&emulatedScalingFactor)
 	// compute xRTE = x * (-f)
-	xRTE := field.Mul(&x, negF)
+	xRTE := field.Mul(&x, &emulatedNegScalingFactor)
 	return *xRTE, y, nil
 }
