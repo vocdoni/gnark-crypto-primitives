@@ -151,11 +151,12 @@ func (h *Poseidon) Sum() frontend.Variable {
 	for r := range nRoundsP {
 		state[0] = h.sigma(state[0])
 		state[0] = h.api.Add(state[0], c[(nRoundsF/2+1)*t+r])
-		newState0 := frontend.Variable(0)
+
+		mulResults := make([]frontend.Variable, len(state))
 		for j := 0; j < len(state); j++ {
-			mul := h.api.Mul(s[(t*2-1)*r+j], state[j])
-			newState0 = h.api.Add(newState0, mul)
+			mulResults[j] = h.api.Mul(s[(t*2-1)*r+j], state[j])
 		}
+		newState0 := h.api.Add(frontend.Variable(0), frontend.Variable(0), mulResults...)
 
 		for k := 1; k < t; k++ {
 			state[k] = h.api.Add(state[k], h.api.Mul(state[0], s[(t*2-1)*r+t+k-1]))
@@ -198,20 +199,20 @@ func (h *Poseidon) mix(in []frontend.Variable, m [][]*big.Int) []frontend.Variab
 	t := len(in)
 	out := make([]frontend.Variable, t)
 	for i := range t {
-		lc := frontend.Variable(0)
+		mulResults := make([]frontend.Variable, t)
 		for j := range t {
-			lc = h.api.Add(lc, h.api.Mul(m[j][i], in[j]))
+			mulResults[j] = h.api.Mul(m[j][i], in[j])
 		}
-		out[i] = lc
+		out[i] = h.api.Add(frontend.Variable(0), frontend.Variable(0), mulResults...)
 	}
 	return out
 }
 
 func (h *Poseidon) mixLast(in []frontend.Variable, m [][]*big.Int, s int) frontend.Variable {
 	t := len(in)
-	out := frontend.Variable(0)
+	mulResults := make([]frontend.Variable, t)
 	for j := range t {
-		out = h.api.Add(out, h.api.Mul(m[j][s], in[j]))
+		mulResults[j] = h.api.Mul(m[j][s], in[j])
 	}
-	return out
+	return h.api.Add(frontend.Variable(0), frontend.Variable(0), mulResults...)
 }

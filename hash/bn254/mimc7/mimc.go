@@ -72,9 +72,8 @@ func (h *MiMC) AssertSumIsEqualFlag(expected frontend.Variable) frontend.Variabl
 
 func (h *MiMC) pow7(x frontend.Variable) frontend.Variable {
 	x2 := h.api.Mul(x, x)
-	x3 := h.api.Mul(x2, x)
-	x5 := h.api.Mul(x2, x3)
-	return h.api.Mul(x2, x5)
+	x4 := h.api.Mul(x2, x2)
+	return h.api.Mul(x, x2, x4)
 }
 
 func (h *MiMC) encrypt(m frontend.Variable) frontend.Variable {
