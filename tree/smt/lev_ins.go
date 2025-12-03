@@ -69,14 +69,8 @@ func LevInsFlag(
 
 	// 5. validity checks
 	leafZeroOK := isZero[n-1] // sibling[n-1] == 0
-	sum := frontend.Variable(0)
-	for _, v := range levIns {
-		sum = api.Add(sum, v)
-	}
-	uniqOK := api.IsZero(api.Sub(sum, 1)) // exactly one level chosen
-	rawValid := api.Mul(leafZeroOK, uniqOK)
-
+	
 	// enable switch
-	valid = api.Select(enabled, rawValid, 1)
+	valid = api.Select(enabled, leafZeroOK, 1)
 	return valid, levIns
 }

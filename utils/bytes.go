@@ -13,21 +13,31 @@ import (
 type Bytes []uints.U8
 
 func (a Bytes) AssertIsEqual(api frontend.API, b Bytes) {
-	api.AssertIsEqual(a.IsEqual(api, b), 1)
+	if len(a) != len(b) {
+		// If lengths differ, this should fail. We can force a failure.
+		// Since lengths are static, we can just panic or assert false.
+		// Panic is better for static analysis, but for circuit we should AssertIsEqual(0, 1)
+		api.AssertIsEqual(0, 1)
+		return
+	}
+	for i := range a {
+		api.AssertIsEqual(a[i].Val, b[i].Val)
+	}
 }
 
 // IsEqual compares two byte slices and returns 1 if they are equal or 0 if
 // they are different. It compares each byte of the slices and sums the number
-// of differences. If the number of differences is 0, the slices are equal.
+// of matches. If the number of matches equals the length, the slices are equal.
 func (a Bytes) IsEqual(api frontend.API, b Bytes) frontend.Variable {
 	if len(a) != len(b) {
 		return 0
 	}
-	diffBytes := frontend.Variable(0)
+	matches := make([]frontend.Variable, len(a))
 	for i := range a {
-		diffBytes = api.Add(diffBytes, StrictCmp(api, a[i].Val, b[i].Val))
+		matches[i] = api.IsZero(api.Sub(a[i].Val, b[i].Val))
 	}
-	return api.IsZero(diffBytes)
+	matchSum := api.Add(frontend.Variable(0), frontend.Variable(0), matches...)
+	return api.IsZero(api.Sub(matchSum, len(a)))
 }
 
 // ToVar converts a byte slice to a variable using the U8ToVar function.
