@@ -7,6 +7,9 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
+// MaxMultihashInputs defines the maximum number of inputs supported by the MultiHash function.
+const MaxMultihashInputs = 4096
+
 // Poseidon struct represents a Poseidon hash function object that can be used
 // to hash inputs. The Poseidon hash function is a cryptographic hash function
 // that is designed to be efficient in terms of both time and space. It is
@@ -37,50 +40,52 @@ func Hash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable, err
 }
 
 // MultiHash returns the hash of the provided inputs using the Poseidon hash
-// function. This function supports up to 256 inputs. If more than 256 inputs
+// function. This function supports up to MaxMultihashInputs inputs. If more
 // are provided, it will return an error. If the number of inputs is 16 or
 // less, it will return the result of Hash function. If the number of inputs
 // is greater than 16, it will calculate the hash of the inputs by dividing
 // them into chunks of 16 inputs each, hashing each chunk, and then hashing
 // the resulting chunk hashes.
 func MultiHash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable, error) {
-	if l := len(inputs); l < 16 {
+	if l := len(inputs); l <= 16 {
 		return Hash(api, inputs...)
-	} else if l > 256 {
-		return 0, fmt.Errorf("the maximum number of inputs supported is 256")
+	} else if l > MaxMultihashInputs {
+		return 0, fmt.Errorf("the maximum number of inputs supported is %d", MaxMultihashInputs)
 	}
-	// calculate chunk hashes
-	hashed := []frontend.Variable{}
-	chunk := []frontend.Variable{}
+
+	// Pre-calculate number of chunks for memory efficiency
+	numChunks := (len(inputs) + 15) / 16 // ceiling division
+	hashed := make([]frontend.Variable, 0, numChunks)
 	hasher := NewPoseidon(api)
-	for _, input := range inputs {
-		if len(chunk) == 16 {
-			if err := hasher.Write(chunk...); err != nil {
-				return 0, err
-			}
-			hashed = append(hashed, hasher.Sum())
-			chunk = []frontend.Variable{}
-			hasher.Reset()
-		}
-		chunk = append(chunk, input)
-	}
-	// if the final chunk is not empty, hash it to get the last chunk hash
-	if len(chunk) > 0 {
-		if err := hasher.Write(chunk...); err != nil {
+
+	// Process inputs in 16-element chunks using slice operations
+	for i := 0; i < len(inputs); i += 16 {
+		end := min(i+16, len(inputs))
+
+		// Hash the chunk
+		if err := hasher.Write(inputs[i:end]...); err != nil {
 			return 0, err
 		}
 		hashed = append(hashed, hasher.Sum())
 		hasher.Reset()
 	}
-	// if there is only one chunk, return its hash
+
+	// Single chunk case - return directly
 	if len(hashed) == 1 {
 		return hashed[0], nil
 	}
-	// return the hash of all chunk hashes
-	if err := hasher.Write(hashed...); err != nil {
-		return 0, err
+
+	// Multiple chunks - recursively hash chunk hashes if needed
+	// If we have more than 16 chunk hashes, we need to recursively apply MegaHash
+	if len(hashed) <= 16 {
+		if err := hasher.Write(hashed...); err != nil {
+			return 0, err
+		}
+		return hasher.Sum(), nil
 	}
-	return hasher.Sum(), nil
+
+	// Recursively hash the chunk hashes
+	return MultiHash(api, hashed...)
 }
 
 // NewPoseidon returns a new Poseidon object that can be used to hash inputs.
