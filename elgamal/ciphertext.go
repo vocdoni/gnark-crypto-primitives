@@ -135,13 +135,12 @@ func (z *Ciphertext) AssertIsEqual(api frontend.API, x *Ciphertext) {
 // IsEqual checks if the ciphertext z is equal to x. It returns a variable that
 // is 1 if they are equal and 0 otherwise.
 func (z *Ciphertext) IsEqual(api frontend.API, x *Ciphertext) frontend.Variable {
-	diffs := api.Add(
-		api.Sub(z.C1.X, x.C1.X),
-		api.Sub(z.C1.Y, x.C1.Y),
-		api.Sub(z.C2.X, x.C2.X),
-		api.Sub(z.C2.Y, x.C2.Y),
+	return api.Mul(
+		api.IsZero(api.Sub(z.C1.X, x.C1.X)),
+		api.IsZero(api.Sub(z.C1.Y, x.C1.Y)),
+		api.IsZero(api.Sub(z.C2.X, x.C2.X)),
+		api.IsZero(api.Sub(z.C2.Y, x.C2.Y)),
 	)
-	return api.IsZero(diffs)
 }
 
 // Select if b is true, sets z = i1, else z = i2, and returns z
