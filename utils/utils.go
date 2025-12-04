@@ -18,10 +18,10 @@ func PackScalarToVar[S emulated.FieldParams](api frontend.API, s emulated.Elemen
 		return nil, err
 	}
 	reduced := field.Reduce(&s)
-	
+
 	nbBits := fr.BitsPerLimb()
 	one := big.NewInt(1)
-	
+
 	terms := make([]frontend.Variable, len(reduced.Limbs))
 	for i := range reduced.Limbs {
 		coef := new(big.Int).Lsh(one, nbBits*uint(i))

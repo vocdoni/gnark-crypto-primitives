@@ -1,6 +1,8 @@
 package smt
 
 import (
+	"math/big"
+
 	"github.com/consensys/gnark/frontend"
 	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
@@ -16,8 +18,10 @@ func Processor(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, si
 func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, siblings []frontend.Variable, oldKey, hash1Old, isOld0, newKey, hash1New, fnc0, fnc1 frontend.Variable) (newRoot frontend.Variable) {
 	levels := len(siblings)
 	enabled := api.Sub(api.Add(fnc0, fnc1), api.Mul(fnc0, fnc1))
-	n2bOld := api.ToBinary(oldKey, api.Compiler().FieldBitLen())
-	n2bNew := api.ToBinary(newKey, api.Compiler().FieldBitLen())
+
+	n2bOld := getLowBits(api, oldKey, levels) // Optimized decomposition
+	n2bNew := getLowBits(api, newKey, levels) // Optimized decomposition
+
 	smtLevIns := LevIns(api, enabled, siblings)
 
 	xors := make([]frontend.Variable, levels)
@@ -39,7 +43,7 @@ func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.
 		}
 	}
 
-	api.AssertIsEqual(api.Add(api.Add(stNa[levels-1], stNew1[levels-1]), api.Add(stOld0[levels-1], stUpd[levels-1])), 1)
+	api.AssertIsEqual(api.Add(stNa[levels-1], stNew1[levels-1], stOld0[levels-1], stUpd[levels-1]), 1) // Optimized Add
 
 	levelsOldRoot := make([]frontend.Variable, levels)
 	levelsNewRoot := make([]frontend.Variable, levels)
@@ -64,5 +68,26 @@ func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.
 	}
 	keysOk := MultiAnd(api, in)
 	api.AssertIsEqual(keysOk, 0)
-	return
+	return newRoot
+}
+
+// getLowBits returns the lower nBits of val as a slice of bits.
+// It uses a hint to calculate the higher part of the value.
+// This is more efficient than a full api.ToBinary if nBits is small.
+func getLowBits(api frontend.API, val frontend.Variable, nBits int) []frontend.Variable {
+	// get the high part of the value
+	high, err := api.NewHint(RightShiftHint, 1, val, nBits)
+	if err != nil {
+		// should not happen
+		panic(err)
+	}
+
+	// low = val - high * 2^nBits
+	base := big.NewInt(1)
+	base.Lsh(base, uint(nBits))
+
+	low := api.Sub(val, api.Mul(high, base))
+
+	// constrain low to be nBits and return the bits
+	return api.ToBinary(low, nBits)
 }

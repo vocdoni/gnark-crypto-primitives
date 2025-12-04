@@ -23,6 +23,12 @@ func HashPoseidon2Gnark(api frontend.API, limbs ...frontend.Variable) (frontend.
 			return 0, err
 		}
 		api.AssertIsLessOrEqual(ord[0], ord[1]) // min ≤ max
+
+		// Verify permutation constraints to prevent malicious hints
+		// {ord[0], ord[1]} == {limbs[0], limbs[1]} iff sum and product match
+		api.AssertIsEqual(api.Add(ord[0], ord[1]), api.Add(limbs[0], limbs[1]))
+		api.AssertIsEqual(api.Mul(ord[0], ord[1]), api.Mul(limbs[0], limbs[1]))
+
 		limbs = ord
 	}
 

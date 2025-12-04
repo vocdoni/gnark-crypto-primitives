@@ -13,5 +13,5 @@ func VerifierLevel(api frontend.API, hFn utils.Hasher, stTop, stIOld, stINew, si
 		api.Mul(old1leaf, stIOld),
 		api.Mul(new1leaf, stINew),
 	)
-	return
+	return root
 }

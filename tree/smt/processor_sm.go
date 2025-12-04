@@ -13,5 +13,5 @@ func ProcessorSM(api frontend.API, xor, is0, levIns, fnc0, prevTop, prevOld0, pr
 	stBot = api.Mul(api.Sub(1, xor), api.Add(api.Sub(aux2, stOld0), prevBot))
 	stUpd = api.Sub(aux1, aux2)
 	stNa = api.Add(api.Add(api.Add(prevNew1, prevOld0), prevNa), prevUpd)
-	return
+	return stTop, stOld0, stBot, stNew1, stNa, stUpd
 }

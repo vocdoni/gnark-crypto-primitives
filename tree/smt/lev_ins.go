@@ -69,7 +69,7 @@ func LevInsFlag(
 
 	// 5. validity checks
 	leafZeroOK := isZero[n-1] // sibling[n-1] == 0
-	
+
 	// enable switch
 	valid = api.Select(enabled, leafZeroOK, 1)
 	return valid, levIns
