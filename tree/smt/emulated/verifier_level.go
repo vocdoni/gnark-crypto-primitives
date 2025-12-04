@@ -9,5 +9,5 @@ func VerifierLevel[T emulated.FieldParams](api frontend.API, field *emulated.Fie
 	proofHashL, proofHashR := Switcher(field, lrbit, child, sibling)
 	proofHash := Hash2(field, proofHashL, proofHashR)
 	root = mux3(api, field, stTop, stIOld, stINew, proofHash, old1leaf, new1leaf)
-	return
+	return root
 }

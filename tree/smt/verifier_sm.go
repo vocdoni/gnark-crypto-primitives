@@ -10,5 +10,5 @@ func VerifierSM(api frontend.API, is0, levIns, fnc, prevTop, prevI0, prevIOld, p
 	stIOld = api.Mul(aux2, api.Sub(1, is0))
 	stI0 = api.Mul(aux1, is0)
 	stNa = api.Add(prevNa, prevINew, prevIOld, prevI0)
-	return
+	return stTop, stI0, stIOld, stINew, stNa
 }

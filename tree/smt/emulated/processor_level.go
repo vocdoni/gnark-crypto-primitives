@@ -23,5 +23,5 @@ func ProcessorLevel[T emulated.FieldParams](api frontend.API, field *emulated.Fi
 	am = api.Add(api.Add(stTop, stBot), stNew1)
 	bm := api.Add(stOld0, stUpd)
 	newRoot = mux2(api, field, am, bm, newProofHash, new1leaf)
-	return
+	return oldRoot, newRoot
 }

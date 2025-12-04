@@ -63,5 +63,5 @@ func Processor[T emulated.FieldParams](api frontend.API, field *emulated.Field[T
 	}
 	keysOk := smt.MultiAnd(api, in)
 	api.AssertIsEqual(keysOk, 0)
-	return
+	return newRoot
 }
