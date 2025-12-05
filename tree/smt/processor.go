@@ -86,7 +86,7 @@ func getLowBits(api frontend.API, val frontend.Variable, nBits int) []frontend.V
 	base := big.NewInt(1)
 	base.Lsh(base, uint(nBits))
 
-	low := api.Sub(val, api.Mul(high, base))
+	low := api.Sub(val, api.Mul(high[0], base))
 
 	// constrain low to be nBits and return the bits
 	return api.ToBinary(low, nBits)

@@ -30,152 +30,11 @@ package elgamal
 
 import (
 	"math/big"
-	"sync"
 
-	edbn254 "github.com/consensys/gnark-crypto/ecc/bn254/twistededwards"
 	ecc_tweds "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
-	"github.com/consensys/gnark/std/math/bits"
 )
-
-// fixedBaseTable holds precomputed multiples of the base point G in 4-bit windows.
-// Each entry fixedBaseTable[i][v] contains [v * 2^(4*i)] * G.
-// Initialized lazily on first use.
-var (
-	fixedBaseTable     [][][2]*big.Int // each point as [X, Y]
-	fixedBaseTableOnce sync.Once
-)
-
-// initFixedBaseTable precomputes the base table used for windowed scalar multiplication.
-// It supports 254-bit scalars (BabyJubjub on BN254).
-// For windows 0-62 (4 bits), it computes 16 points.
-// For window 63 (2 bits), it computes 4 points.
-func initFixedBaseTable() {
-	const numWindows = 64 // 254 bits: 63 * 4 + 2 = 254
-	fixedBaseTable = make([][][2]*big.Int, numWindows)
-
-	// Get the BN254 twisted Edwards curve parameters
-	edcurve := edbn254.GetEdwardsCurve()
-
-	// Get base point
-	var basePoint edbn254.PointAffine
-	basePoint.X.Set(&edcurve.Base.X)
-	basePoint.Y.Set(&edcurve.Base.Y)
-
-	// Identity point (0, 1)
-	identity := [2]*big.Int{big.NewInt(0), big.NewInt(1)}
-
-	for i := range numWindows {
-		entries := 16
-		if i == numWindows-1 {
-			entries = 4 // Last window covers remaining 2 bits
-		}
-
-		table := make([][2]*big.Int, entries)
-		table[0] = identity
-
-		// For window i, compute [j * 2^(4*i)] * G
-		// windowMultiplier = 2^(4*i)
-		windowMultiplier := new(big.Int).Lsh(big.NewInt(1), uint(4*i))
-
-		for j := 1; j < entries; j++ {
-			// scalar = j * 2^(4*i)
-			scalar := new(big.Int).Mul(big.NewInt(int64(j)), windowMultiplier)
-
-			// Compute [scalar] * G
-			var point edbn254.PointAffine
-			point.ScalarMultiplication(&basePoint, scalar)
-
-			// Convert to big.Int
-			xBig := new(big.Int)
-			yBig := new(big.Int)
-			point.X.BigInt(xBig)
-			point.Y.BigInt(yBig)
-
-			table[j] = [2]*big.Int{xBig, yBig}
-		}
-		fixedBaseTable[i] = table
-	}
-}
-
-// FixedBaseScalarMul performs an optimized scalar multiplication of a secret scalar with a fixed base (G),
-// using 4-bit windowing with Lookup2 for efficient selection.
-func FixedBaseScalarMul(api frontend.API, scalar frontend.Variable) twistededwards.Point {
-	// Initialize table on first use
-	fixedBaseTableOnce.Do(initFixedBaseTable)
-
-	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
-	if err != nil {
-		panic(err)
-	}
-
-	// Break scalar into 254 bits total (BN254 scalar field)
-	scalarBits := bits.ToBinary(api, scalar, bits.WithNbDigits(254))
-	// 63 windows of 4 bits + 1 window of 2 bits
-	nWindows := 64
-
-	// Result accumulator
-	var res twistededwards.Point
-
-	for i := range nWindows {
-		var px, py frontend.Variable
-		table := fixedBaseTable[i]
-
-		if i < nWindows-1 {
-			// Standard 4-bit window (16 entries)
-			bits4 := scalarBits[i*4 : (i+1)*4]
-
-			// Prepare coordinates for lookup
-			xValues := make([]frontend.Variable, 16)
-			yValues := make([]frontend.Variable, 16)
-			for j := 0; j < 16; j++ {
-				xValues[j] = table[j][0]
-				yValues[j] = table[j][1]
-			}
-
-			// Nested Lookup2 for 4-bit selection
-			px0 := api.Lookup2(bits4[0], bits4[1], xValues[0], xValues[1], xValues[2], xValues[3])
-			px1 := api.Lookup2(bits4[0], bits4[1], xValues[4], xValues[5], xValues[6], xValues[7])
-			px2 := api.Lookup2(bits4[0], bits4[1], xValues[8], xValues[9], xValues[10], xValues[11])
-			px3 := api.Lookup2(bits4[0], bits4[1], xValues[12], xValues[13], xValues[14], xValues[15])
-			px = api.Lookup2(bits4[2], bits4[3], px0, px1, px2, px3)
-
-			py0 := api.Lookup2(bits4[0], bits4[1], yValues[0], yValues[1], yValues[2], yValues[3])
-			py1 := api.Lookup2(bits4[0], bits4[1], yValues[4], yValues[5], yValues[6], yValues[7])
-			py2 := api.Lookup2(bits4[0], bits4[1], yValues[8], yValues[9], yValues[10], yValues[11])
-			py3 := api.Lookup2(bits4[0], bits4[1], yValues[12], yValues[13], yValues[14], yValues[15])
-			py = api.Lookup2(bits4[2], bits4[3], py0, py1, py2, py3)
-
-		} else {
-			// Last window (2 bits, 4 entries)
-			bits2 := scalarBits[i*4 : i*4+2]
-
-			xValues := make([]frontend.Variable, 4)
-			yValues := make([]frontend.Variable, 4)
-			for j := 0; j < 4; j++ {
-				xValues[j] = table[j][0]
-				yValues[j] = table[j][1]
-			}
-
-			// Single Lookup2 for 2-bit selection
-			px = api.Lookup2(bits2[0], bits2[1], xValues[0], xValues[1], xValues[2], xValues[3])
-			py = api.Lookup2(bits2[0], bits2[1], yValues[0], yValues[1], yValues[2], yValues[3])
-		}
-
-		contrib := twistededwards.Point{X: px, Y: py}
-
-		if i == 0 {
-			// First window initializes the result (avoids adding identity)
-			res = contrib
-		} else {
-			// Accumulate
-			res = curve.Add(res, contrib)
-		}
-	}
-
-	return res
-}
 
 // Encrypt encrypts the message m using the public key pubKey and random k,
 // using optimized fixed-base scalar multiplication for [k]*G and [m]*G.
@@ -190,13 +49,13 @@ func (z *Ciphertext) Encrypt(api frontend.API, pubKey twistededwards.Point, k, m
 	curve.AssertIsOnCurve(pubKey)
 
 	// c1 = [k] * G (using fixed-base optimization)
-	z.C1 = FixedBaseScalarMul(api, k)
+	z.C1 = FixedBaseScalarMulBN254(api, k)
 
 	// s = [k] * publicKey (variable-base, no optimization available)
 	s := curve.ScalarMul(pubKey, k)
 
 	// mPoint = [m] * G (using fixed-base optimization)
-	mPoint := FixedBaseScalarMul(api, m)
+	mPoint := FixedBaseScalarMulBN254(api, m)
 
 	// c2 = mPoint + s
 	z.C2 = curve.Add(mPoint, s)
@@ -220,7 +79,7 @@ func EncryptedZero(api frontend.API, pubKey twistededwards.Point, k frontend.Var
 	curve.AssertIsOnCurve(pubKey)
 
 	// c1 = [k] * G (using fixed-base optimization)
-	c1 := FixedBaseScalarMul(api, k)
+	c1 := FixedBaseScalarMulBN254(api, k)
 
 	// s = [k] * publicKey (variable-base, no optimization available)
 	s := curve.ScalarMul(pubKey, k)

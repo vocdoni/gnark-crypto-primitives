@@ -89,12 +89,10 @@ func (z *Ciphertext) AssertDecrypt(api frontend.API, privKey, m frontend.Variabl
 	if err != nil {
 		return err
 	}
-	base := curve.Params().Base
-	G := twistededwards.Point{X: base[0], Y: base[1]}
 	// s = [privKey] * C1
 	S := curve.ScalarMul(z.C1, privKey)
 	// M = [message] * G
-	M := curve.ScalarMul(G, m)
+	M := FixedBaseScalarMulBN254(api, m)
 	// M' = C2 - S = C2 + [-S]
 	MPrime := curve.Add(z.C2, curve.Neg(S))
 	// M' == M
@@ -169,11 +167,8 @@ func (p *DecryptionProof) Verify(
 	if err != nil {
 		return err
 	}
-	base := curve.Params().Base
-	G := twistededwards.Point{X: base[0], Y: base[1]}
-
 	// M = [msg] * G
-	M := curve.ScalarMul(G, msg)
+	M := FixedBaseScalarMulBN254(api, msg)
 	// D = C2 - M = C2 + [-M]
 	D := curve.Add(ciphertext.C2, curve.Neg(M))
 
@@ -181,7 +176,7 @@ func (p *DecryptionProof) Verify(
 	E := hashPointsToScalar(api, hFn, pubkey, pubkey, ciphertext.C1, D, p.A1, p.A2)
 
 	// zG = [z] * G
-	zG := curve.ScalarMul(G, p.Z)
+	zG := FixedBaseScalarMulBN254(api, p.Z)
 	// eP = [E] * P
 	eP := curve.ScalarMul(pubkey, E)
 	// A1PlusEP = A1 + eP
