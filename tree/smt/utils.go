@@ -2,7 +2,24 @@ package smt
 
 import (
 	"github.com/consensys/gnark/frontend"
+	"math/big"
 )
+
+// lowBits returns the lower nBits of val using a right-shift hint for the high part
+// and constrains the low part with api.ToBinary. This avoids a full-width bit
+// decomposition when only a prefix is needed (e.g. SMT paths).
+func lowBits(api frontend.API, val frontend.Variable, nBits int) []frontend.Variable {
+	high, err := api.NewHint(RightShiftHint, 1, val, nBits)
+	if err != nil {
+		panic(err)
+	}
+
+	base := big.NewInt(1)
+	base.Lsh(base, uint(nBits))
+
+	low := api.Sub(val, api.Mul(high[0], base))
+	return api.ToBinary(low, nBits)
+}
 
 // IsEqual returns 1 iff a == b, 0 otherwise (unchanged).
 func IsEqual(api frontend.API, a, b frontend.Variable) frontend.Variable {

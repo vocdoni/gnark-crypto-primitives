@@ -182,7 +182,7 @@ func VerifierWithLeafHashFlag(
 	nLevels := len(siblings)
 
 	// level state machines
-	n2bNew := api.ToBinary(key, api.Compiler().FieldBitLen())
+	n2bNew := lowBits(api, key, nLevels)
 	flagLevIns, smtLevIns := LevInsFlag(api, enabled, siblings)
 
 	stTop := make([]frontend.Variable, nLevels)
