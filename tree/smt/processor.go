@@ -1,8 +1,6 @@
 package smt
 
 import (
-	"math/big"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/vocdoni/gnark-crypto-primitives/utils"
 )
@@ -19,8 +17,8 @@ func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.
 	levels := len(siblings)
 	enabled := api.Sub(api.Add(fnc0, fnc1), api.Mul(fnc0, fnc1))
 
-	n2bOld := getLowBits(api, oldKey, levels) // Optimized decomposition
-	n2bNew := getLowBits(api, newKey, levels) // Optimized decomposition
+	n2bOld := lowBits(api, oldKey, levels) // Optimized decomposition
+	n2bNew := lowBits(api, newKey, levels) // Optimized decomposition
 
 	smtLevIns := LevIns(api, enabled, siblings)
 
@@ -69,25 +67,4 @@ func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.
 	keysOk := MultiAnd(api, in)
 	api.AssertIsEqual(keysOk, 0)
 	return newRoot
-}
-
-// getLowBits returns the lower nBits of val as a slice of bits.
-// It uses a hint to calculate the higher part of the value.
-// This is more efficient than a full api.ToBinary if nBits is small.
-func getLowBits(api frontend.API, val frontend.Variable, nBits int) []frontend.Variable {
-	// get the high part of the value
-	high, err := api.NewHint(RightShiftHint, 1, val, nBits)
-	if err != nil {
-		// should not happen
-		panic(err)
-	}
-
-	// low = val - high * 2^nBits
-	base := big.NewInt(1)
-	base.Lsh(base, uint(nBits))
-
-	low := api.Sub(val, api.Mul(high[0], base))
-
-	// constrain low to be nBits and return the bits
-	return api.ToBinary(low, nBits)
 }

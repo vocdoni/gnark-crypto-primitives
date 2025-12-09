@@ -90,7 +90,7 @@ func FixedBaseScalarMulBN254(api frontend.API, scalar frontend.Variable) twisted
 	// Result accumulator
 	var res twistededwards.Point
 
-	for i := 0; i < nWindows; i++ {
+	for i := range nWindows {
 		var px, py frontend.Variable
 		table := fixedBaseTable[i]
 

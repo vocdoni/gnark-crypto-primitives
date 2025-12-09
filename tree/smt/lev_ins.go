@@ -68,9 +68,19 @@ func LevInsFlag(
 	levIns[0] = api.Sub(1, done[0])
 
 	// 5. validity checks
-	leafZeroOK := isZero[n-1] // sibling[n-1] == 0
+	leafZeroOK := isZero[n-1]                              // sibling[n-1] == 0
+	oneHot := api.IsZero(api.Sub(sumBits(api, levIns), 1)) // exactly one level selected
 
 	// enable switch
-	valid = api.Select(enabled, leafZeroOK, 1)
+	valid = api.Select(enabled, api.And(leafZeroOK, oneHot), 1)
 	return valid, levIns
+}
+
+// sumBits adds a slice of boolean variables.
+func sumBits(api frontend.API, bits []frontend.Variable) frontend.Variable {
+	acc := frontend.Variable(0)
+	for i := 0; i < len(bits); i++ {
+		acc = api.Add(acc, bits[i])
+	}
+	return acc
 }
