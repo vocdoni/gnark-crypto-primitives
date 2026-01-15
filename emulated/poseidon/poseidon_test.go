@@ -32,6 +32,18 @@ func (c *hashCircuit) Define(api frontend.API) error {
 	return nil
 }
 
+type multiHashAssertCircuit struct {
+	Inputs   [60]emulated.Element[sw_bn254.ScalarField]
+	Expected emulated.Element[sw_bn254.ScalarField] `gnark:",public"`
+}
+
+func (c *multiHashAssertCircuit) Define(api frontend.API) error {
+	if err := AssertMultiHashEqual(api, c.Inputs[:], c.Expected); err != nil {
+		return err
+	}
+	return nil
+}
+
 func TestEmulatedPoseidonMatchesNative(t *testing.T) {
 	assert := test.NewAssert(t)
 
@@ -59,6 +71,37 @@ func TestEmulatedPoseidonMatchesNative(t *testing.T) {
 
 	assert.ProverSucceeded(
 		&hashCircuit{},
+		&witness,
+		test.WithCurves(ecc.BLS12_377),
+		test.WithBackends(backend.GROTH16),
+	)
+}
+
+func TestEmulatedPoseidonAssertMultiHashEqual60(t *testing.T) {
+	assert := test.NewAssert(t)
+
+	var nativeInputs [60]bn254fr.Element
+	var emulatedInputs [60]emulated.Element[sw_bn254.ScalarField]
+	for i := range nativeInputs {
+		nativeInputs[i].SetUint64(uint64(i + 1))
+		emulatedInputs[i] = emulated.ValueOf[sw_bn254.ScalarField](nativeInputs[i].BigInt(new(big.Int)))
+	}
+
+	expected := referenceMultiHash(nativeInputs[:]...)
+
+	witness := multiHashAssertCircuit{
+		Inputs:   emulatedInputs,
+		Expected: emulated.ValueOf[sw_bn254.ScalarField](expected.BigInt(new(big.Int))),
+	}
+
+	ccs, err := frontend.Compile(ecc.BLS12_377.ScalarField(), r1cs.NewBuilder, &multiHashAssertCircuit{})
+	if err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	t.Logf("emulated bn254 poseidon multihash constraints (bls12-377 host): %d", ccs.GetNbConstraints())
+
+	assert.ProverSucceeded(
+		&multiHashAssertCircuit{},
 		&witness,
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
@@ -141,6 +184,30 @@ func referenceHash(inputs ...bn254fr.Element) bn254fr.Element {
 	}
 
 	return mixLastNative(state, m, 0)
+}
+
+func referenceMultiHash(inputs ...bn254fr.Element) bn254fr.Element {
+	if len(inputs) <= 16 {
+		return referenceHash(inputs...)
+	}
+	if len(inputs) > MaxMultihashInputs {
+		panic("referenceMultiHash input count exceeds MaxMultihashInputs")
+	}
+
+	numChunks := (len(inputs) + 15) / 16
+	hashed := make([]bn254fr.Element, 0, numChunks)
+	for i := 0; i < len(inputs); i += 16 {
+		end := min(i+16, len(inputs))
+		hashed = append(hashed, referenceHash(inputs[i:end]...))
+	}
+
+	if len(hashed) == 1 {
+		return hashed[0]
+	}
+	if len(hashed) <= 16 {
+		return referenceHash(hashed...)
+	}
+	return referenceMultiHash(hashed...)
 }
 
 func sigmaNative(in *bn254fr.Element) {
