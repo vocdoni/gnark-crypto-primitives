@@ -67,6 +67,20 @@ func MultiHash(api frontend.API, inputs ...emulated.Element[sw_bn254.ScalarField
 	return MultiHash(api, hashed...)
 }
 
+// AssertMultiHashEqual computes a Poseidon multihash of inputs and asserts it matches expected.
+func AssertMultiHashEqual(api frontend.API, inputs []emulated.Element[sw_bn254.ScalarField], expected emulated.Element[sw_bn254.ScalarField]) error {
+	res, err := MultiHash(api, inputs...)
+	if err != nil {
+		return fmt.Errorf("poseidon multihash: %w", err)
+	}
+	field, err := emulated.NewField[sw_bn254.ScalarField](api)
+	if err != nil {
+		return fmt.Errorf("poseidon field: %w", err)
+	}
+	field.AssertIsEqual(&res, &expected)
+	return nil
+}
+
 // NewPoseidon builds a new hasher.
 func NewPoseidon(api frontend.API) (Poseidon, error) {
 	field, err := emulated.NewField[sw_bn254.ScalarField](api)
