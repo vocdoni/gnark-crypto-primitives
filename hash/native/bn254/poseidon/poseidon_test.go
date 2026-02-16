@@ -69,7 +69,7 @@ func TestMultiPoseidon(t *testing.T) {
 		inputs [32]*big.Int
 		data   [32]frontend.Variable
 	)
-	for i := 0; i < 32; i++ {
+	for i := range 32 {
 		// generate random input
 		r, err := rand.Int(rand.Reader, ecc.BN254.ScalarField())
 		if err != nil {

@@ -9,97 +9,39 @@ import (
 	"github.com/consensys/gnark/std/math/emulated"
 )
 
-// MaxMultihashInputs defines the maximum number of inputs supported by the MultiHash function.
-const MaxMultihashInputs = 4096
+const (
+	// MaxMultihashInputs defines the maximum number of inputs supported by the MultiHash function.
+	MaxMultihashInputs = 4096
+	// MaxHashInputs defines the maximum number of inputs supported by the Hash function.
+	MaxHashInputs = 16
+)
 
 // Poseidon over emulated BN254 scalar field, usable inside foreign-curve circuits (e.g., BLS12-377).
 type Poseidon struct {
+	api   frontend.API
 	field *emulated.Field[sw_bn254.ScalarField]
 	data  []emulated.Element[sw_bn254.ScalarField]
 }
 
-// Hash computes a Poseidon hash over emulated BN254 elements.
-func Hash(api frontend.API, inputs ...emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], error) {
-	h, err := NewPoseidon(api)
-	if err != nil {
-		return emulated.Element[sw_bn254.ScalarField]{}, err
-	}
-	if err := h.Write(inputs...); err != nil {
-		return emulated.Element[sw_bn254.ScalarField]{}, err
-	}
-	return h.Sum(), nil
-}
-
-// MultiHash hashes up to MaxMultihashInputs elements by chunking with rate 16, mirroring the native gadget.
-func MultiHash(api frontend.API, inputs ...emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], error) {
-	if l := len(inputs); l <= 16 {
-		return Hash(api, inputs...)
-	} else if l > MaxMultihashInputs {
-		return emulated.Element[sw_bn254.ScalarField]{}, fmt.Errorf("the maximum number of inputs supported is %d", MaxMultihashInputs)
-	}
-
-	numChunks := (len(inputs) + 15) / 16
-	hashed := make([]emulated.Element[sw_bn254.ScalarField], 0, numChunks)
-	h, err := NewPoseidon(api)
-	if err != nil {
-		return emulated.Element[sw_bn254.ScalarField]{}, err
-	}
-
-	for i := 0; i < len(inputs); i += 16 {
-		end := min(i+16, len(inputs))
-		if err := h.Write(inputs[i:end]...); err != nil {
-			return emulated.Element[sw_bn254.ScalarField]{}, err
-		}
-		hashed = append(hashed, h.Sum())
-		h.Reset()
-	}
-
-	if len(hashed) == 1 {
-		return hashed[0], nil
-	}
-
-	if len(hashed) <= 16 {
-		if err := h.Write(hashed...); err != nil {
-			return emulated.Element[sw_bn254.ScalarField]{}, err
-		}
-		return h.Sum(), nil
-	}
-	return MultiHash(api, hashed...)
-}
-
-// AssertMultiHashEqual computes a Poseidon multihash of inputs and asserts it matches expected.
-func AssertMultiHashEqual(api frontend.API, inputs []emulated.Element[sw_bn254.ScalarField], expected emulated.Element[sw_bn254.ScalarField]) error {
-	res, err := MultiHash(api, inputs...)
-	if err != nil {
-		return fmt.Errorf("poseidon multihash: %w", err)
-	}
+// New builds a new hasher.
+func New(api frontend.API) (*Poseidon, error) {
 	field, err := emulated.NewField[sw_bn254.ScalarField](api)
 	if err != nil {
-		return fmt.Errorf("poseidon field: %w", err)
+		return nil, err
 	}
-	field.AssertIsEqual(&res, &expected)
-	return nil
-}
-
-// NewPoseidon builds a new hasher.
-func NewPoseidon(api frontend.API) (Poseidon, error) {
-	field, err := emulated.NewField[sw_bn254.ScalarField](api)
-	if err != nil {
-		return Poseidon{}, err
-	}
-	return Poseidon{
+	return &Poseidon{
+		api:   api,
 		field: field,
 		data:  []emulated.Element[sw_bn254.ScalarField]{},
 	}, nil
 }
 
 // Write buffers inputs; rate is 16.
-func (h *Poseidon) Write(data ...emulated.Element[sw_bn254.ScalarField]) error {
-	if len(h.data)+len(data) > 16 {
-		return fmt.Errorf("poseidon hash only supports up to 16 inputs, use MultiHash instead")
+func (h *Poseidon) Write(data ...emulated.Element[sw_bn254.ScalarField]) {
+	if len(h.data)+len(data) > MaxHashInputs {
+		return
 	}
 	h.data = append(h.data, data...)
-	return nil
 }
 
 // Reset clears buffered inputs.
@@ -127,20 +69,20 @@ func (h *Poseidon) Sum() emulated.Element[sw_bn254.ScalarField] {
 	state = h.ark(state, c, 0)
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			state[j] = h.sigma(state[j])
 		}
 		state = h.ark(state, c, (r+1)*t)
 		state = h.mix(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		state[j] = h.sigma(state[j])
 	}
 	state = h.ark(state, c, nRoundsF/2*t)
 	state = h.mix(state, p)
 
-	for r := 0; r < nRoundsP; r++ {
+	for r := range nRoundsP {
 		state[0] = h.sigma(state[0])
 		state[0] = h.field.Add(state[0], constElement(h.field, c[(nRoundsF/2+1)*t+r]))
 
@@ -156,20 +98,34 @@ func (h *Poseidon) Sum() emulated.Element[sw_bn254.ScalarField] {
 	}
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			state[j] = h.sigma(state[j])
 		}
 		state = h.ark(state, c, (nRoundsF/2+1)*t+nRoundsP+r*t)
 		state = h.mix(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		state[j] = h.sigma(state[j])
 	}
 
 	out := h.mixLast(state, m, 0)
 	h.data = []emulated.Element[sw_bn254.ScalarField]{}
 	return *out
+}
+
+func (h *Poseidon) WriteSucceeded() bool {
+	return len(h.data) > 0
+}
+
+func (h *Poseidon) SumIsEqual(expected emulated.Element[sw_bn254.ScalarField]) frontend.Variable {
+	res := h.Sum()
+	return h.field.IsZero(h.field.Sub(&res, &expected))
+}
+
+func (h *Poseidon) AssertSumIsEqual(expected emulated.Element[sw_bn254.ScalarField]) {
+	flag := h.SumIsEqual(expected)
+	h.api.AssertIsEqual(flag, 1)
 }
 
 func (h *Poseidon) sigma(in *emulated.Element[sw_bn254.ScalarField]) *emulated.Element[sw_bn254.ScalarField] {
@@ -189,9 +145,9 @@ func (h *Poseidon) ark(in []*emulated.Element[sw_bn254.ScalarField], c []*big.In
 func (h *Poseidon) mix(in []*emulated.Element[sw_bn254.ScalarField], m [][]*big.Int) []*emulated.Element[sw_bn254.ScalarField] {
 	t := len(in)
 	out := make([]*emulated.Element[sw_bn254.ScalarField], t)
-	for i := 0; i < t; i++ {
+	for i := range t {
 		sum := h.field.Zero()
-		for j := 0; j < t; j++ {
+		for j := range t {
 			sum = h.field.Add(sum, h.field.Mul(constElement(h.field, m[j][i]), in[j]))
 		}
 		out[i] = sum
@@ -202,7 +158,7 @@ func (h *Poseidon) mix(in []*emulated.Element[sw_bn254.ScalarField], m [][]*big.
 func (h *Poseidon) mixLast(in []*emulated.Element[sw_bn254.ScalarField], m [][]*big.Int, r int) *emulated.Element[sw_bn254.ScalarField] {
 	t := len(in)
 	out := h.field.Zero()
-	for j := 0; j < t; j++ {
+	for j := range t {
 		out = h.field.Add(out, h.field.Mul(constElement(h.field, m[j][r]), in[j]))
 	}
 	return out
@@ -212,9 +168,59 @@ func constElement(f *emulated.Field[sw_bn254.ScalarField], bi *big.Int) *emulate
 	return f.NewElement(bi)
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+// Hash computes a Poseidon hash over emulated BN254 elements.
+func Hash(api frontend.API, inputs ...emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], error) {
+	h, err := New(api)
+	if err != nil {
+		return emulated.Element[sw_bn254.ScalarField]{}, err
 	}
-	return b
+	h.Write(inputs...)
+	return h.Sum(), nil
+}
+
+// MultiHash hashes up to MaxMultihashInputs elements by chunking with rate 16, mirroring the native gadget.
+func MultiHash(api frontend.API, inputs ...emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], error) {
+	if l := len(inputs); l <= 16 {
+		return Hash(api, inputs...)
+	} else if l > MaxMultihashInputs {
+		return emulated.Element[sw_bn254.ScalarField]{}, fmt.Errorf("the maximum number of inputs supported is %d", MaxMultihashInputs)
+	}
+
+	numChunks := (len(inputs) + 15) / 16
+	hashed := make([]emulated.Element[sw_bn254.ScalarField], 0, numChunks)
+	h, err := New(api)
+	if err != nil {
+		return emulated.Element[sw_bn254.ScalarField]{}, err
+	}
+
+	for i := 0; i < len(inputs); i += 16 {
+		end := min(i+16, len(inputs))
+		h.Write(inputs[i:end]...)
+		hashed = append(hashed, h.Sum())
+		h.Reset()
+	}
+
+	if len(hashed) == 1 {
+		return hashed[0], nil
+	}
+
+	if len(hashed) <= 16 {
+		h.Write(hashed...)
+		return h.Sum(), nil
+	}
+	return MultiHash(api, hashed...)
+}
+
+// AssertMultiHashEqual computes a Poseidon multihash of inputs and asserts it matches expected.
+func AssertMultiHashEqual(api frontend.API, inputs []emulated.Element[sw_bn254.ScalarField], expected emulated.Element[sw_bn254.ScalarField]) error {
+	res, err := MultiHash(api, inputs...)
+	if err != nil {
+		return fmt.Errorf("poseidon multihash: %w", err)
+	}
+	field, err := emulated.NewField[sw_bn254.ScalarField](api)
+	if err != nil {
+		return fmt.Errorf("poseidon field: %w", err)
+	}
+	field.AssertIsEqual(&res, &expected)
+	return nil
 }

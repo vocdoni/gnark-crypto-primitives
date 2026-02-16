@@ -7,8 +7,12 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
-// MaxMultihashInputs defines the maximum number of inputs supported by the MultiHash function.
-const MaxMultihashInputs = 4096
+const (
+	// MaxMultihashInputs defines the maximum number of inputs supported by the MultiHash function.
+	MaxMultihashInputs = 4096
+	// MaxHashInputs defines the maximum number of inputs supported by the Hash function.
+	MaxHashInputs = 16
+)
 
 // Poseidon struct represents a Poseidon hash function object that can be used
 // to hash inputs. The Poseidon hash function is a cryptographic hash function
@@ -32,9 +36,10 @@ type Poseidon struct {
 // it will return the hash of the inputs. This function is equivalent to calling
 // NewPoseidon and then calling Write and Sum on the returned Poseidon object.
 func Hash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable, error) {
-	h := NewPoseidon(api)
-	if err := h.Write(inputs...); err != nil {
-		return 0, err
+	h, _ := New(api)
+	h.Write(inputs...)
+	if len(h.data) == 0 {
+		return 0, fmt.Errorf("bad inputs provided")
 	}
 	return h.Sum(), nil
 }
@@ -47,25 +52,23 @@ func Hash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable, err
 // them into chunks of 16 inputs each, hashing each chunk, and then hashing
 // the resulting chunk hashes.
 func MultiHash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable, error) {
-	if l := len(inputs); l <= 16 {
+	if l := len(inputs); l <= MaxHashInputs {
 		return Hash(api, inputs...)
 	} else if l > MaxMultihashInputs {
 		return 0, fmt.Errorf("the maximum number of inputs supported is %d", MaxMultihashInputs)
 	}
 
 	// Pre-calculate number of chunks for memory efficiency
-	numChunks := (len(inputs) + 15) / 16 // ceiling division
+	numChunks := (len(inputs) + 15) / MaxHashInputs // ceiling division
 	hashed := make([]frontend.Variable, 0, numChunks)
-	hasher := NewPoseidon(api)
+	hasher, _ := New(api)
 
 	// Process inputs in 16-element chunks using slice operations
-	for i := 0; i < len(inputs); i += 16 {
-		end := min(i+16, len(inputs))
+	for i := 0; i < len(inputs); i += MaxHashInputs {
+		end := min(i+MaxHashInputs, len(inputs))
 
 		// Hash the chunk
-		if err := hasher.Write(inputs[i:end]...); err != nil {
-			return 0, err
-		}
+		hasher.Write(inputs[i:end]...)
 		hashed = append(hashed, hasher.Sum())
 		hasher.Reset()
 	}
@@ -76,11 +79,10 @@ func MultiHash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable
 	}
 
 	// Multiple chunks - recursively hash chunk hashes if needed
-	// If we have more than 16 chunk hashes, we need to recursively apply MegaHash
-	if len(hashed) <= 16 {
-		if err := hasher.Write(hashed...); err != nil {
-			return 0, err
-		}
+	// If we have more than MaxHashInputs chunk hashes, we need to recursively
+	// apply MegaHash
+	if len(hashed) <= MaxHashInputs {
+		hasher.Write(hashed...)
 		return hasher.Sum(), nil
 	}
 
@@ -88,22 +90,21 @@ func MultiHash(api frontend.API, inputs ...frontend.Variable) (frontend.Variable
 	return MultiHash(api, hashed...)
 }
 
-// NewPoseidon returns a new Poseidon object that can be used to hash inputs.
-func NewPoseidon(api frontend.API) Poseidon {
-	return Poseidon{
+// New returns a new Poseidon object that can be used to hash inputs.
+func New(api frontend.API) (*Poseidon, error) {
+	return &Poseidon{
 		api:  api,
 		data: []frontend.Variable{},
-	}
+	}, nil
 }
 
 // Write adds the provided inputs to the Poseidon object. If the number of
 // inputs is greater than 16, it will return an error.
-func (h *Poseidon) Write(data ...frontend.Variable) error {
-	if len(h.data)+len(data) > 16 {
-		return fmt.Errorf("poseidon hash only supports up to 16 inputs, use MultiHash instead")
+func (h *Poseidon) Write(data ...frontend.Variable) {
+	if len(h.data)+len(data) > MaxHashInputs {
+		return
 	}
 	h.data = append(h.data, data...)
-	return nil
 }
 
 // Reset resets the Poseidon object, removing all written inputs.
@@ -179,6 +180,20 @@ func (h *Poseidon) Sum() frontend.Variable {
 	out := h.mixLast(state, m, 0)
 	h.data = []frontend.Variable{}
 	return out
+}
+
+func (h *Poseidon) WriteSucceeded() bool {
+	return len(h.data) > 0
+}
+
+func (h *Poseidon) SumIsEqual(expected frontend.Variable) frontend.Variable {
+	res := h.Sum()
+	return h.api.IsZero(h.api.Sub(res, expected))
+}
+
+func (h *Poseidon) AssertSumIsEqual(expected frontend.Variable) {
+	flag := h.SumIsEqual(expected)
+	h.api.AssertIsEqual(flag, 1)
 }
 
 func (h *Poseidon) sigma(in frontend.Variable) frontend.Variable {
