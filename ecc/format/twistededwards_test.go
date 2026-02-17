@@ -1,4 +1,4 @@
-package twistededwards
+package format
 
 import (
 	"fmt"
