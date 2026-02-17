@@ -9,7 +9,7 @@ require (
 	github.com/consensys/gnark-crypto v0.19.3-0.20251115174214-022ec58e8c19
 	github.com/ethereum/go-ethereum v1.16.1
 	github.com/frankban/quicktest v1.14.6
-	github.com/iden3/go-iden3-crypto v0.0.17
+	github.com/iden3/go-iden3-crypto v0.0.18-0.20241128121142-625bf563ffc5
 	github.com/mdehoog/gnark-circom-smt v0.0.0-20240224081844-6972718e0548
 	github.com/mdehoog/poseidon v0.0.0-20240301020106-ba6c393a5802
 	github.com/rs/zerolog v1.34.0
