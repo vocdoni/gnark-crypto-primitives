@@ -1,8 +1,9 @@
 package smt
 
 import (
-	"github.com/consensys/gnark/frontend"
 	"math/big"
+
+	"github.com/consensys/gnark/frontend"
 )
 
 // lowBits returns the lower nBits of val using a right-shift hint for the high part

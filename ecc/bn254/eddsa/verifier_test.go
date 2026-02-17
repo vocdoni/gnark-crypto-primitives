@@ -47,7 +47,7 @@ func TestVerifier(t *testing.T) {
 	// Convert the signature to gnark format
 	signature := SignatureFromIden3(iden3Signature)
 	// Convert the public key to gnark format
-	publicKey := PublicKeyFromIden3(*privKey.Public())
+	publicKey := PublicKeyFromIden3(privKey.Public())
 
 	assert := test.NewAssert(t)
 	assert.SolvingSucceeded(

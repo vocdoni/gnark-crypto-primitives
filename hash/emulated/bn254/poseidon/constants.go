@@ -4,9 +4,6 @@ package poseidon
 
 import "math/big"
 
-// Max number of inputs supported by the Poseidon hash function
-const maxInputs = 16
-
 var (
 	C = parse1D(strC)
 	M = parse2D(strM)

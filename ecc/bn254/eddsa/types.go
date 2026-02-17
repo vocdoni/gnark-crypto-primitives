@@ -23,7 +23,7 @@ type Signature struct {
 // PublicKeyFromIden3 converts a Iden3 public key to a gnark public key. It
 // just creates a twisted edwards point with the x and y coordinates of the
 // original public key.
-func PublicKeyFromIden3(pubKey babyjub.PublicKey) PublicKey {
+func PublicKeyFromIden3(pubKey *babyjub.PublicKey) PublicKey {
 	// Return the public key
 	return PublicKey{
 		A: twistededwards.Point{X: pubKey.X, Y: pubKey.Y},

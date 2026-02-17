@@ -26,7 +26,7 @@ type Verifier struct {
 func NewVerifier(api frontend.API, hashFn hash.Hash[frontend.Variable]) (*Verifier, error) {
 	curve, err := twistededwards.NewEdCurve(api, ecc_tw.BN254)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing ")
+		return nil, fmt.Errorf("error initializing bn254 twistededwards curve: %w", err)
 	}
 	return &Verifier{
 		api:    api,
@@ -58,6 +58,8 @@ func (v *Verifier) IsValid(pubKey PublicKey, sig Signature, msg frontend.Variabl
 	v.hashFn.Reset()
 	v.hashFn.Write(sig.R.X, sig.R.Y, pubKey.A.X, pubKey.A.Y, msg)
 	if !v.hashFn.WriteSucceeded() {
+		// This point should never be reached, but if it is, return 0 as a
+		// invalid signature result flag.
 		return 0
 	}
 
