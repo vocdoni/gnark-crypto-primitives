@@ -13,7 +13,7 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/consensys/gnark/test"
-	poseidon1 "github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
+	poseidon1 "github.com/vocdoni/gnark-crypto-primitives/hash/native/bn254/poseidon"
 )
 
 type poseidon2CompatCircuit struct {
@@ -127,10 +127,8 @@ type Poseidon1Circuit struct {
 }
 
 func (circuit *Poseidon1Circuit) Define(api frontend.API) error {
-	h := poseidon1.NewPoseidon(api)
-	if err := h.Write(circuit.Data...); err != nil {
-		return err
-	}
+	h, _ := poseidon1.New(api)
+	h.Write(circuit.Data...)
 	h.Sum()
 	return nil
 }

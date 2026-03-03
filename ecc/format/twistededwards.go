@@ -1,11 +1,11 @@
-// twistededwards package provides helper circuit functions to transform points
+// format package provides helper circuit functions to transform points
 // (x, y) from the TwistedEdwards format to Reduced TwistedEdwards format and
 // vice versa, over BabyJubJub curve. These functions are required because
 // Gnark uses the Reduced TwistedEdwards formula while Iden3 uses the standard
 // TwistedEdwards formula.
 //
 // Read more about this here: https://github.com/bellesmarta/baby_jubjub
-package twistededwards
+package format
 
 import (
 	"github.com/consensys/gnark/frontend"
@@ -23,6 +23,9 @@ var (
 	}
 )
 
+// FromRTEtoTE transforms a point (x, y) in Reduced TwistedEdwards format to
+// TwistedEdwards format (from Gnark format to Iden3 format), using native
+// arithmetic.
 func FromRTEtoTE(api frontend.API, x, y frontend.Variable) (frontend.Variable, frontend.Variable) {
 	// compute negF = -f mod p
 	negF := api.Neg(scalingFactor)
@@ -33,6 +36,9 @@ func FromRTEtoTE(api frontend.API, x, y frontend.Variable) (frontend.Variable, f
 	return xTE, y
 }
 
+// FromTEtoRTE transforms a point (x, y) in TwistedEdwards format to Reduced
+// TwistedEdwards format (from Iden3 format to Gnark format), using native
+// arithmetic.
 func FromTEtoRTE(api frontend.API, x, y frontend.Variable) (frontend.Variable, frontend.Variable) {
 	// compute negF = -f mod p
 	negF := api.Neg(scalingFactor)
@@ -41,6 +47,9 @@ func FromTEtoRTE(api frontend.API, x, y frontend.Variable) (frontend.Variable, f
 	return xRTE, y
 }
 
+// FromEmulatedRTEtoTE transforms a point (x, y) in Reduced TwistedEdwards
+// format to TwistedEdwards format (from Gnark format to Iden3 format), using
+// emulated arithmetic.
 func FromEmulatedRTEtoTE(api frontend.API, x, y emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], emulated.Element[sw_bn254.ScalarField], error) {
 	field, err := emulated.NewField[sw_bn254.ScalarField](api)
 	if err != nil {
@@ -51,6 +60,9 @@ func FromEmulatedRTEtoTE(api frontend.API, x, y emulated.Element[sw_bn254.Scalar
 	return *xTE, y, nil
 }
 
+// FromEmulatedTEtoRTE transforms a point (x, y) in TwistedEdwards format to
+// Reduced TwistedEdwards format (from Iden3 format to Gnark format), using
+// emulated arithmetic.
 func FromEmulatedTEtoRTE(api frontend.API, x, y emulated.Element[sw_bn254.ScalarField]) (emulated.Element[sw_bn254.ScalarField], emulated.Element[sw_bn254.ScalarField], error) {
 	field, err := emulated.NewField[sw_bn254.ScalarField](api)
 	if err != nil {

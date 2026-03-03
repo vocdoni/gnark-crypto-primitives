@@ -17,7 +17,7 @@ func getConstant[T any](constant []T, round int) T {
 
 func parseList(input []string) []*big.Int {
 	list := make([]*big.Int, len(input))
-	for i := 0; i < len(input); i++ {
+	for i := range input {
 		list[i], _ = new(big.Int).SetString(input[i], 10)
 	}
 
@@ -26,7 +26,7 @@ func parseList(input []string) []*big.Int {
 
 func parse1D(input [][]string) [][]*big.Int {
 	res := make([][]*big.Int, len(input))
-	for i := 0; i < len(input); i++ {
+	for i := range input {
 		res[i] = parseList(input[i])
 	}
 
@@ -35,7 +35,7 @@ func parse1D(input [][]string) [][]*big.Int {
 
 func parse2D(input [][][]string) [][][]*big.Int {
 	res := make([][][]*big.Int, len(input))
-	for i := 0; i < len(input); i++ {
+	for i := range input {
 		res[i] = make([][]*big.Int, len(input[i]))
 		for j := 0; j < len(input[i]); j++ {
 			res[i][j] = parseList(input[i][j])

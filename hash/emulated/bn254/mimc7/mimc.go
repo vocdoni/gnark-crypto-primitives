@@ -1,8 +1,6 @@
 package mimc7
 
 import (
-	"fmt"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/emulated/sw_bn254"
 	"github.com/consensys/gnark/std/math/emulated"
@@ -20,14 +18,14 @@ type MiMC struct {
 	data   []emulated.Element[sw_bn254.ScalarField] // state storage. data is updated when Write() is called. Sum sums the data.
 }
 
-// NewMiMC function returns a initialized MiMC hash function into the BabyJubJub
+// New function returns a initialized MiMC hash function into the BabyJubJub
 // curve for the emulated BN254 ScalarField.
-func NewMiMC(api frontend.API) (MiMC, error) {
+func New(api frontend.API) (*MiMC, error) {
 	field, err := emulated.NewField[sw_bn254.ScalarField](api)
 	if err != nil {
-		return MiMC{}, err
+		return nil, err
 	}
-	return MiMC{
+	return &MiMC{
 		api:    api,
 		field:  field,
 		params: constants,
@@ -37,12 +35,11 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 }
 
 // Write adds more data to the running hash.
-func (h *MiMC) Write(data ...emulated.Element[sw_bn254.ScalarField]) error {
+func (h *MiMC) Write(data ...emulated.Element[sw_bn254.ScalarField]) {
 	if len(h.data)+len(data) > maxInputs {
-		return fmt.Errorf("too many inputs. Max inputs is %d", maxInputs)
+		return
 	}
 	h.data = append(h.data, data...)
-	return nil
 }
 
 // Reset resets the Hash to its initial state.
@@ -63,16 +60,20 @@ func (h *MiMC) Sum() emulated.Element[sw_bn254.ScalarField] {
 	return h.h
 }
 
+func (h *MiMC) WriteSucceeded() bool {
+	return len(h.data) > 0
+}
+
 // AssertSumIsEqual asserts that the hash of the data is equal to the expected
 // hash.
 func (h *MiMC) AssertSumIsEqual(expected emulated.Element[sw_bn254.ScalarField]) {
-	flag := h.AssertSumIsEqualFlag(expected)
+	flag := h.SumIsEqual(expected)
 	h.api.AssertIsEqual(flag, 1)
 }
 
 // AssertSumIsEqualFlag returns a flag that is 1 if the hash of the data is
 // equal to the expected hash and 0 otherwise.
-func (h *MiMC) AssertSumIsEqualFlag(expected emulated.Element[sw_bn254.ScalarField]) frontend.Variable {
+func (h *MiMC) SumIsEqual(expected emulated.Element[sw_bn254.ScalarField]) frontend.Variable {
 	res := h.Sum()
 	return h.field.IsZero(h.field.Sub(&res, &expected))
 }

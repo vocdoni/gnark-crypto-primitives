@@ -22,14 +22,11 @@ type testMiMCCircuit struct {
 }
 
 func (circuit *testMiMCCircuit) Define(api frontend.API) error {
-	mimc, err := NewMiMC(api)
+	mimc, err := New(api)
 	if err != nil {
 		return err
 	}
-	if err := mimc.Write(circuit.Preimage); err != nil {
-		api.Println(err.Error())
-		api.AssertIsEqual(1, 0)
-	}
+	mimc.Write(circuit.Preimage)
 	mimc.AssertSumIsEqual(circuit.Hash)
 	return nil
 }
@@ -59,14 +56,11 @@ type testMaxInputsMiMCCircuit struct {
 }
 
 func (circuit *testMaxInputsMiMCCircuit) Define(api frontend.API) error {
-	mimc, err := NewMiMC(api)
+	mimc, err := New(api)
 	if err != nil {
 		return err
 	}
-	if err := mimc.Write(circuit.Preimages[:]...); err != nil {
-		api.Println(err.Error())
-		api.AssertIsEqual(1, 0)
-	}
+	mimc.Write(circuit.Preimages[:]...)
 	mimc.AssertSumIsEqual(circuit.Hash)
 	return nil
 }
@@ -76,14 +70,11 @@ type testLimitInputsMiMCCircuit struct {
 }
 
 func (circuit *testLimitInputsMiMCCircuit) Define(api frontend.API) error {
-	mimc, err := NewMiMC(api)
+	mimc, err := New(api)
 	if err != nil {
 		return err
 	}
-	if err := mimc.Write(circuit.Preimages[:]...); err == nil {
-		api.Println("too many inputs expected")
-		api.AssertIsEqual(1, 0)
-	}
+	mimc.Write(circuit.Preimages[:]...)
 	return nil
 }
 
@@ -94,7 +85,7 @@ func TestMaxAndLimitInputsMiMC(t *testing.T) {
 	inputs := []*big.Int{}
 	emulatedInputs := [maxInputs]frontend.Variable{}
 	limitEmulatedInputs := [maxInputs + 1]frontend.Variable{}
-	for i := 0; i < maxInputs; i++ {
+	for i := range maxInputs {
 		inputs = append(inputs, input)
 		emulatedInputs[i] = input
 		limitEmulatedInputs[i] = input

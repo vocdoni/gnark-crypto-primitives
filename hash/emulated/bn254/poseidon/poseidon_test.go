@@ -121,7 +121,7 @@ func referenceHash(inputs ...bn254fr.Element) bn254fr.Element {
 	p := getConstant(P, t) // [][]*big.Int
 
 	state := make([]bn254fr.Element, t)
-	for j := 0; j < t; j++ {
+	for j := range t {
 		if j == 0 {
 			state[0].SetZero()
 		} else {
@@ -131,27 +131,27 @@ func referenceHash(inputs ...bn254fr.Element) bn254fr.Element {
 	arkNative(state, c, 0)
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			sigmaNative(&state[j])
 		}
 		arkNative(state, c, (r+1)*t)
 		mixNative(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		sigmaNative(&state[j])
 	}
 	arkNative(state, c, nRoundsF/2*t)
 	mixPartialNative(state, p)
 
-	for r := 0; r < nRoundsP; r++ {
+	for r := range nRoundsP {
 		sigmaNative(&state[0])
 		var tmp bn254fr.Element
 		tmp.SetBigInt(c[(nRoundsF/2+1)*t+r])
 		state[0].Add(&state[0], &tmp)
 
 		mulResults := make([]bn254fr.Element, len(state))
-		for j := 0; j < len(state); j++ {
+		for j := range state {
 			var coeff bn254fr.Element
 			coeff.SetBigInt(s[(t*2-1)*r+j])
 			mulResults[j].Mul(&coeff, &state[j])
@@ -172,14 +172,14 @@ func referenceHash(inputs ...bn254fr.Element) bn254fr.Element {
 	}
 
 	for r := 0; r < nRoundsF/2-1; r++ {
-		for j := 0; j < t; j++ {
+		for j := range t {
 			sigmaNative(&state[j])
 		}
 		arkNative(state, c, (nRoundsF/2+1)*t+nRoundsP+r*t)
 		mixNative(state, m)
 	}
 
-	for j := 0; j < t; j++ {
+	for j := range t {
 		sigmaNative(&state[j])
 	}
 
@@ -228,9 +228,9 @@ func arkNative(state []bn254fr.Element, c []*big.Int, r int) {
 func mixNative(state []bn254fr.Element, m [][]*big.Int) {
 	t := len(state)
 	out := make([]bn254fr.Element, t)
-	for i := 0; i < t; i++ {
+	for i := range t {
 		var sum bn254fr.Element
-		for j := 0; j < t; j++ {
+		for j := range t {
 			var coeff bn254fr.Element
 			coeff.SetBigInt(m[j][i])
 			var mul bn254fr.Element
@@ -245,9 +245,9 @@ func mixNative(state []bn254fr.Element, m [][]*big.Int) {
 func mixPartialNative(state []bn254fr.Element, p [][]*big.Int) {
 	t := len(state)
 	out := make([]bn254fr.Element, t)
-	for i := 0; i < t; i++ {
+	for i := range t {
 		var sum bn254fr.Element
-		for j := 0; j < t; j++ {
+		for j := range t {
 			var coeff bn254fr.Element
 			coeff.SetBigInt(p[j][i])
 			var mul bn254fr.Element
@@ -262,7 +262,7 @@ func mixPartialNative(state []bn254fr.Element, p [][]*big.Int) {
 func mixLastNative(state []bn254fr.Element, m [][]*big.Int, r int) bn254fr.Element {
 	t := len(state)
 	var out bn254fr.Element
-	for j := 0; j < t; j++ {
+	for j := range t {
 		var coeff bn254fr.Element
 		coeff.SetBigInt(m[j][r])
 		var mul bn254fr.Element

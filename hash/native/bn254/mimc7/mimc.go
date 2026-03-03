@@ -1,8 +1,6 @@
 package mimc7
 
 import (
-	"fmt"
-
 	"github.com/consensys/gnark/frontend"
 )
 
@@ -21,8 +19,8 @@ type MiMC struct {
 // curve for the BN254. WARNING: This function only works for the BN254 curve.
 // If your circuit has not this curve as the native curve, you can use the
 // emulated version of the MiMC hash function.
-func NewMiMC(api frontend.API) (MiMC, error) {
-	return MiMC{
+func New(api frontend.API) (*MiMC, error) {
+	return &MiMC{
 		api:    api,
 		params: constants,
 		h:      frontend.Variable(0),
@@ -31,12 +29,11 @@ func NewMiMC(api frontend.API) (MiMC, error) {
 }
 
 // Write adds more data to the running hash.
-func (h *MiMC) Write(data ...frontend.Variable) error {
+func (h *MiMC) Write(data ...frontend.Variable) {
 	if len(h.data)+len(data) > maxInputs {
-		return fmt.Errorf("too many inputs. Max inputs is %d", maxInputs)
+		return
 	}
 	h.data = append(h.data, data...)
-	return nil
 }
 
 // Reset resets the Hash to its initial state.
@@ -56,16 +53,20 @@ func (h *MiMC) Sum() frontend.Variable {
 	return h.h
 }
 
+func (h *MiMC) WriteSucceeded() bool {
+	return len(h.data) > 0
+}
+
 // AssertSumIsEqual asserts that the hash of the data is equal to the expected
 // hash.
 func (h *MiMC) AssertSumIsEqual(expected frontend.Variable) {
-	flag := h.AssertSumIsEqualFlag(expected)
+	flag := h.SumIsEqual(expected)
 	h.api.AssertIsEqual(flag, 1)
 }
 
-// AssertSumIsEqualFlag returns a flag that is 1 if the hash of the data is
+// SumIsEqual returns a flag that is 1 if the hash of the data is
 // equal to the expected hash and 0 otherwise.
-func (h *MiMC) AssertSumIsEqualFlag(expected frontend.Variable) frontend.Variable {
+func (h *MiMC) SumIsEqual(expected frontend.Variable) frontend.Variable {
 	res := h.Sum()
 	return h.api.IsZero(h.api.Sub(res, expected))
 }

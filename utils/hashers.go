@@ -3,8 +3,8 @@ package utils
 import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/hash/mimc"
-	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon"
-	"github.com/vocdoni/gnark-crypto-primitives/hash/bn254/poseidon2"
+	"github.com/vocdoni/gnark-crypto-primitives/hash/native/bn254/poseidon"
+	"github.com/vocdoni/gnark-crypto-primitives/hash/native/bn254/poseidon2"
 )
 
 type Hasher func(frontend.API, ...frontend.Variable) (frontend.Variable, error)
