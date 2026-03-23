@@ -89,6 +89,8 @@ func (z *Ciphertext) AssertDecrypt(api frontend.API, privKey, m frontend.Variabl
 	if err != nil {
 		return err
 	}
+	curve.AssertIsOnCurve(z.C1)
+	curve.AssertIsOnCurve(z.C2)
 	// s = [privKey] * C1
 	S := curve.ScalarMul(z.C1, privKey)
 	// M = [message] * G
@@ -167,6 +169,11 @@ func (p *DecryptionProof) Verify(
 	if err != nil {
 		return err
 	}
+	curve.AssertIsOnCurve(pubkey)
+	curve.AssertIsOnCurve(ciphertext.C1)
+	curve.AssertIsOnCurve(ciphertext.C2)
+	curve.AssertIsOnCurve(p.A1)
+	curve.AssertIsOnCurve(p.A2)
 	// M = [msg] * G
 	M := FixedBaseScalarMulBN254(api, msg)
 	// D = C2 - M = C2 + [-M]

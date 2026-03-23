@@ -280,7 +280,15 @@ func TestVerifyDecryptionProof(t *testing.T) {
 		Msg: mockMsg,
 	}
 
+	invalid := *assignments
+	invalid.Proof.A1.Y = big.NewInt(0)
+
 	assert := test.NewAssert(t)
-	assert.SolvingSucceeded(&testVerifyDecryptionProofCircuit{}, assignments,
-		test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+	assert.CheckCircuit(
+		&testVerifyDecryptionProofCircuit{},
+		test.WithValidAssignment(assignments),
+		test.WithInvalidAssignment(&invalid),
+		test.WithCurves(ecc.BN254),
+		test.WithBackends(backend.GROTH16),
+	)
 }
