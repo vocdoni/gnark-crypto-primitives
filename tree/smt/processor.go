@@ -14,6 +14,8 @@ func Processor(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, si
 }
 
 func ProcessorWithLeafHash(api frontend.API, hFn utils.Hasher, oldRoot frontend.Variable, siblings []frontend.Variable, oldKey, hash1Old, isOld0, newKey, hash1New, fnc0, fnc1 frontend.Variable) (newRoot frontend.Variable) {
+	api.AssertIsBoolean(isOld0)
+
 	levels := len(siblings)
 	enabled := api.Sub(api.Add(fnc0, fnc1), api.Mul(fnc0, fnc1))
 
