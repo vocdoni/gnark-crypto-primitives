@@ -115,6 +115,57 @@ func TestElGamalAdd(t *testing.T) {
 	fmt.Println("elapsed", time.Since(now))
 }
 
+type testElGamalNegCircuit struct {
+	In  Ciphertext `gnark:",public"`
+	Out Ciphertext `gnark:",public"`
+}
+
+func (c *testElGamalNegCircuit) Define(api frontend.API) error {
+	neg := &Ciphertext{}
+	neg.Neg(api, &c.In)
+	neg.AssertIsEqual(api, &c.Out)
+	return nil
+}
+
+func negatePoint(x, y *big.Int) (*big.Int, *big.Int) {
+	xNeg := new(big.Int).Neg(x)
+	xNeg.Mod(xNeg, ecc.BN254.ScalarField())
+	return xNeg, new(big.Int).Set(y)
+}
+
+func TestElGamalNeg(t *testing.T) {
+	_, pubKey, err := generateKeyPair(big.NewInt(11))
+	if err != nil {
+		t.Fatalf("Error generating key pair: %v\n", err)
+	}
+
+	k := big.NewInt(17)
+	msg := big.NewInt(3)
+	c1, c2 := encrypt(msg, pubKey, k)
+
+	negC1X, negC1Y := negatePoint(c1.X, c1.Y)
+	negC2X, negC2Y := negatePoint(c2.X, c2.Y)
+
+	xC1RTE, yC1RTE := format.FromTEtoRTE(c1.X, c1.Y)
+	xC2RTE, yC2RTE := format.FromTEtoRTE(c2.X, c2.Y)
+	xNegC1RTE, yNegC1RTE := format.FromTEtoRTE(negC1X, negC1Y)
+	xNegC2RTE, yNegC2RTE := format.FromTEtoRTE(negC2X, negC2Y)
+
+	assert := test.NewAssert(t)
+	assignments := &testElGamalNegCircuit{
+		In: Ciphertext{
+			C1: twistededwards.Point{X: xC1RTE, Y: yC1RTE},
+			C2: twistededwards.Point{X: xC2RTE, Y: yC2RTE},
+		},
+		Out: Ciphertext{
+			C1: twistededwards.Point{X: xNegC1RTE, Y: yNegC1RTE},
+			C2: twistededwards.Point{X: xNegC2RTE, Y: yNegC2RTE},
+		},
+	}
+
+	assert.SolvingSucceeded(&testElGamalNegCircuit{}, assignments, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16))
+}
+
 func randomK() (*big.Int, error) {
 	// Generate random scalar k
 	kBytes := make([]byte, 20)
