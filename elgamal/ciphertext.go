@@ -31,6 +31,20 @@ func (z *Ciphertext) Add(api frontend.API, x, y *Ciphertext) *Ciphertext {
 	return z
 }
 
+// Neg sets z to the negation of x and returns z.
+//
+// Panics if twistededwards curve init fails.
+func (z *Ciphertext) Neg(api frontend.API, x *Ciphertext) *Ciphertext {
+	curve, err := twistededwards.NewEdCurve(api, ecc_tweds.BN254)
+	if err != nil {
+		panic(err)
+	}
+
+	z.C1 = curve.Neg(x.C1)
+	z.C2 = curve.Neg(x.C2)
+	return z
+}
+
 // AssertDecrypt checks if the ciphertext z can be decrypted with privKey
 // to the message m. It returns an error if the curve initialization fails.
 func (z *Ciphertext) AssertDecrypt(api frontend.API, privKey, m frontend.Variable) error {
